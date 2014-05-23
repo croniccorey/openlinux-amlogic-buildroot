@@ -1,0 +1,719 @@
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/include/Qt/qkbdamlogic.h qt-everywhere-opensource-src-4.6.2.chg/include/Qt/qkbdamlogic.h
+--- qt-everywhere-opensource-src-4.6.2.ori/include/Qt/qkbdamlogic.h	1969-12-31 16:00:00.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/include/Qt/qkbdamlogic.h	2010-04-21 20:11:29.647941908 -0700
+@@ -0,0 +1,2 @@
++#include "../../src/gui/embedded/qkbdamlogic.h"
++
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/include/QtGui/qkbdamlogic.h qt-everywhere-opensource-src-4.6.2.chg/include/QtGui/qkbdamlogic.h
+--- qt-everywhere-opensource-src-4.6.2.ori/include/QtGui/qkbdamlogic.h	1969-12-31 16:00:00.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/include/QtGui/qkbdamlogic.h	2010-04-21 20:11:29.647941908 -0700
+@@ -0,0 +1,2 @@
++#include "../../src/gui/embedded/qkbdamlogic.h"
++
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/embedded.pri qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/embedded.pri
+--- qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/embedded.pri	2010-02-11 07:55:22.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/embedded.pri	2010-04-21 20:11:29.651942021 -0700
+@@ -174,6 +174,9 @@
+                 SOURCES += embedded/qkbdqnx_qws.cpp
+         }
+ 
++	HEADERS +=embedded/qkbdamlogic.h
++	SOURCES +=embedded/qkbdamlogic.cpp
++
+ #
+ # Mouse drivers
+ #
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbdamlogic.cpp qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbdamlogic.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbdamlogic.cpp	1969-12-31 16:00:00.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbdamlogic.cpp	2010-04-21 20:11:29.848536264 -0700
+@@ -0,0 +1,571 @@
++/****************************************************************************
++**
++** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
++** Contact: Nokia Corporation (qt-info@nokia.com)
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial Usage
++** Licensees holding valid Qt Commercial licenses may use this file in
++** accordance with the Qt Commercial License Agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Nokia.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Nokia gives you certain
++** additional rights. These rights are described in the Nokia Qt LGPL
++** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
++** package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++** If you are unsure which license is appropriate for your use, please
++** contact the sales department at http://www.qtsoftware.com/contact.
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++#include <stdio.h>
++#include <stdlib.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <linux/input.h>
++
++#include <qvfbhdr.h>
++#include <qkbdamlogic.h>
++
++#include <qwindowsystem_qws.h>
++#include <qsocketnotifier.h>
++#include <qapplication.h>
++
++#define INVALID_KEY Qt::Key_unknown
++
++static IrMap defaultIrMap[] = 
++{
++	{0x67, Qt::Key_Up, "UP"}, 					
++	{0x6c, Qt::Key_Down, "DOWN"}, 				
++	{0x69, Qt::Key_Left, "LEFT"},				
++	{0x6a, Qt::Key_Right, "RIGHT"},				
++	{0x1c, Qt::Key_Enter, "ENTER"}, 			
++	{0x74, Qt::Key_Standby, "POWER"},
++	{0X71, Qt::Key_VolumeMute, "MUTE"},
++	{0X3b, Qt::Key_Launch0, "PHOTO"},
++	{0X3c, Qt::Key_Launch1, "MUSIC"},
++	{0X3d, Qt::Key_Launch2, "MOVIE"},
++	{0X184, Qt::Key_Launch3, "TEXT"},
++	{0X3e, Qt::Key_F1, "RATIO"},
++	{0X3f, Qt::Key_F2, "ROTATE"},
++	{0X174, Qt::Key_Zoom, "ZOOM"},
++	{0X40, Qt::Key_F3, "VIEW"},
++	{0X41, Qt::Key_F4, "OSD"},
++	{0X8b, Qt::Key_Menu, "MENU"},
++	{0X9e, Qt::Key_F5, "BACK MUSIC"},
++	{0X42, Qt::Key_F6, "SLIDE SHOW"},
++	{0X43, Qt::Key_F7, "STEP SHOW"},
++	{0X0c, Qt::Key_VolumeUp, "VOLUME+"},
++	{0X0c, Qt::Key_VolumeDown, "VOLUME-"},
++	{0Xae, Qt::Key_Cancel, "EXIT"},
++	{0Xa4, Qt::Key_MediaPlay, "PLAY"},
++	{0X80, Qt::Key_MediaStop, "STOP"},
++	{0Xa8, Qt::Key_Back, "FR"},
++	{0X9f, Qt::Key_Forward, "FF"},
++	{INVALID_KEY, 0, ""},
++};
++
++
++QT_BEGIN_NAMESPACE
++
++QAmlogicIRHandler::QAmlogicIRHandler(const QString &device)
++    : QObject()
++{
++	memset(readMap, 0, sizeof(IrMap)*MAX_KEY_NUMBER);
++	initIrMap();
++	
++    terminalName = device;
++
++	if (terminalName.isEmpty())
++        terminalName = QLatin1String("/dev/input/event0");
++	
++    kbdFD = -1;
++    kbdIdx = 0;
++
++    if ((kbdFD = open(terminalName.toLatin1().constData(), O_RDONLY | O_NDELAY)) < 0) {
++        qWarning("Cannot open %s (%s)", terminalName.toLatin1().constData(),
++        strerror(errno));
++    } else {
++        notifier = new QSocketNotifier(kbdFD, QSocketNotifier::Read, this);
++        connect(notifier, SIGNAL(activated(int)),this, SLOT(readKeyboardData()));
++    }
++}
++
++QAmlogicIRHandler::~QAmlogicIRHandler()
++{
++    if (kbdFD >= 0)
++        close(kbdFD);
++}
++
++void QAmlogicIRHandler::string2KeyTable()
++{
++	string2key["Qt::Key_Up"] = Qt::Key_Up;
++	string2key["Qt::Key_Down"] = Qt::Key_Down;
++	string2key["Qt::Key_Left"] = Qt::Key_Left;
++	string2key["Qt::Key_Right"] = Qt::Key_Right;
++	string2key["Qt::Key_Enter"] = Qt::Key_Enter;
++	string2key["Qt::Key_Escape"] = Qt::Key_Escape;
++	string2key["Qt::Key_Menu"] = Qt::Key_Menu;
++	string2key["Qt::Key_Space"] = Qt::Key_Space;
++	string2key["Qt::Key_Plus"] = Qt::Key_Plus;
++	string2key["Qt::Key_Minus"] = Qt::Key_Minus;	
++	string2key["Qt::Key_PageUp"] = Qt::Key_PageUp;
++	string2key["Qt::Key_PageDown"] = Qt::Key_PageDown;
++	string2key["Qt::Key_Return"] = Qt::Key_Return;
++
++	string2key["Qt::Key_Tab"] = Qt::Key_Tab;
++	string2key["Qt::Key_Backtab"] = Qt::Key_Backtab;
++	string2key["Qt::Key_Backspace"] = Qt::Key_Backspace;
++	string2key["Qt::Key_Insert"] = Qt::Key_Insert;
++	string2key["Qt::Key_Delete"] = Qt::Key_Delete;
++	string2key["Qt::Key_Pause"] = Qt::Key_Pause;
++	string2key["Qt::Key_Print"] = Qt::Key_Print;
++	string2key["Qt::Key_SysReq"] = Qt::Key_SysReq;
++	string2key["Qt::Key_Clear"] = Qt::Key_Clear;
++	string2key["Qt::Key_Home"] = Qt::Key_Home;
++	string2key["Qt::Key_End"] = Qt::Key_End;
++	string2key["Qt::Key_Shift"] = Qt::Key_Shift;
++	string2key["Qt::Key_Control"] = Qt::Key_Control;
++
++	string2key["Qt::Key_Meta"] = Qt::Key_Meta;
++	string2key["Qt::Key_Alt"] = Qt::Key_Alt;
++	string2key["Qt::Key_AltGr"] = Qt::Key_AltGr;
++	string2key["Qt::Key_CapsLock"] = Qt::Key_CapsLock;
++	string2key["Qt::Key_NumLock"] = Qt::Key_NumLock;
++	string2key["Qt::Key_ScrollLock"] = Qt::Key_ScrollLock;
++	string2key["Qt::Key_Super_L"] = Qt::Key_Super_L;
++	string2key["Qt::Key_Super_R"] = Qt::Key_Super_R;
++	string2key["Qt::Key_Hyper_L"] = Qt::Key_Hyper_L;
++	string2key["Qt::Key_Hyper_R"] = Qt::Key_Hyper_R;
++	string2key["Qt::Key_Help"] = Qt::Key_Help;
++	string2key["Qt::Key_Direction_L"] = Qt::Key_Direction_L;
++	string2key["Qt::Key_Direction_R"] = Qt::Key_Direction_R;
++	string2key["Qt::Key_Any"] = Qt::Key_Any;
++	string2key["Qt::Key_Exclam"] = Qt::Key_Exclam;
++	string2key["Qt::Key_QuoteDbl"] = Qt::Key_QuoteDbl;
++	string2key["Qt::Key_NumberSign"] = Qt::Key_NumberSign;
++	string2key["Qt::Key_Dollar"] = Qt::Key_Dollar;
++	string2key["Qt::Key_Percent"] = Qt::Key_Percent;
++	string2key["Qt::Key_Ampersand"] = Qt::Key_Ampersand;
++	string2key["Qt::Key_Apostrophe"] = Qt::Key_Apostrophe;
++	string2key["Qt::Key_ParenLeft"] = Qt::Key_ParenLeft;
++	string2key["Qt::Key_ParenRight"] = Qt::Key_ParenRight;
++	string2key["Qt::Key_Asterisk"] = Qt::Key_Asterisk;
++	string2key["Qt::Key_Comma"] = Qt::Key_Comma;
++	string2key["Qt::Key_Period"] = Qt::Key_Period;
++	string2key["Qt::Key_Slash"] = Qt::Key_Slash;
++	string2key["Qt::Key_Colon"] = Qt::Key_Colon;
++	string2key["Qt::Key_Semicolon"] = Qt::Key_Semicolon;
++	string2key["Qt::Key_Less"] = Qt::Key_Less;
++	string2key["Qt::Key_Equal"] = Qt::Key_Equal;
++	string2key["Qt::Key_Greater"] = Qt::Key_Greater;
++	string2key["Qt::Key_Question"] = Qt::Key_Question;
++	string2key["Qt::Key_At"] = Qt::Key_At;
++	string2key["Qt::Key_BracketLeft"] = Qt::Key_BracketLeft;
++	string2key["Qt::Key_Backslash"] = Qt::Key_Backslash;
++	string2key["Qt::Key_BracketRight"] = Qt::Key_BracketRight;
++	string2key["Qt::Key_AsciiCircum"] = Qt::Key_AsciiCircum;
++	string2key["Qt::Key_Underscore"] = Qt::Key_Underscore;
++	string2key["Qt::Key_QuoteLeft"] = Qt::Key_QuoteLeft;
++	string2key["Qt::Key_BraceLeft"] = Qt::Key_BraceLeft;
++	string2key["Qt::Key_Bar"] = Qt::Key_Bar;
++	string2key["Qt::Key_BraceRight"] = Qt::Key_BraceRight;
++	string2key["Qt::Key_AsciiTilde"] = Qt::Key_AsciiTilde;
++	string2key["Qt::Key_nobreakspace"] = Qt::Key_nobreakspace;
++	string2key["Qt::Key_exclamdown"] = Qt::Key_exclamdown;
++	string2key["Qt::Key_cent"] = Qt::Key_cent;
++	string2key["Qt::Key_sterling"] = Qt::Key_sterling;
++	string2key["Qt::Key_currency"] = Qt::Key_currency;
++	string2key["Qt::Key_yen"] = Qt::Key_yen;
++	string2key["Qt::Key_brokenbar"] = Qt::Key_brokenbar;
++	string2key["Qt::Key_diaeresis"] = Qt::Key_diaeresis;
++	string2key["Qt::Key_copyright"] = Qt::Key_copyright;
++	string2key["Qt::Key_ordfeminine"] = Qt::Key_ordfeminine;
++	string2key["Qt::Key_guillemotleft"] = Qt::Key_guillemotleft;
++	string2key["Qt::Key_notsign"] = Qt::Key_notsign;
++	string2key["Qt::Key_hyphen"] = Qt::Key_hyphen;
++	string2key["Qt::Key_registered"] = Qt::Key_registered;
++	string2key["Qt::Key_macron"] = Qt::Key_macron;
++	string2key["Qt::Key_degree"] = Qt::Key_degree;
++	string2key["Qt::Key_plusminus"] = Qt::Key_plusminus;
++	string2key["Qt::Key_twosuperior"] = Qt::Key_twosuperior;
++	string2key["Qt::Key_threesuperior"] = Qt::Key_threesuperior;
++	string2key["Qt::Key_acute"] = Qt::Key_acute;
++	string2key["Qt::Key_mu"] = Qt::Key_mu;
++	string2key["Qt::Key_paragraph"] = Qt::Key_paragraph;
++	string2key["Qt::Key_periodcentered"] = Qt::Key_periodcentered;
++	string2key["Qt::Key_cedilla"] = Qt::Key_cedilla;
++	string2key["Qt::Key_onesuperior"] = Qt::Key_onesuperior;
++	string2key["Qt::Key_masculine"] = Qt::Key_masculine;
++	string2key["Qt::Key_guillemotright"] = Qt::Key_guillemotright;
++	string2key["Qt::Key_onequarter"] = Qt::Key_onequarter;
++	string2key["Qt::Key_threequarters"] = Qt::Key_threequarters;
++	string2key["Qt::Key_questiondown"] = Qt::Key_questiondown;
++	string2key["Qt::Key_Agrave"] = Qt::Key_Agrave;
++	string2key["Qt::Key_Aacute"] = Qt::Key_Aacute;
++	string2key["Qt::Key_Acircumflex"] = Qt::Key_Acircumflex;
++	string2key["Qt::Key_Atilde"] = Qt::Key_Atilde;
++	string2key["Qt::Key_Adiaeresis"] = Qt::Key_Adiaeresis;
++	string2key["Qt::Key_Aring"] = Qt::Key_Aring;
++	string2key["Qt::Key_AE"] = Qt::Key_AE;
++	string2key["Qt::Key_Ccedilla"] = Qt::Key_Ccedilla;
++	string2key["Qt::Key_Egrave"] = Qt::Key_Egrave;
++	string2key["Qt::Key_Eacute"] = Qt::Key_Eacute;
++	string2key["Qt::Key_Ecircumflex"] = Qt::Key_Ecircumflex;
++	string2key["Qt::Key_Ediaeresis"] = Qt::Key_Ediaeresis;
++	string2key["Qt::Key_Igrave"] = Qt::Key_Igrave;
++	string2key["Qt::Key_Iacute"] = Qt::Key_Iacute;
++	string2key["Qt::Key_Icircumflex"] = Qt::Key_Icircumflex;
++	string2key["Qt::Key_Idiaeresis"] = Qt::Key_Idiaeresis;
++	string2key["Qt::Key_ETH"] = Qt::Key_ETH;
++	string2key["Qt::Key_Ntilde"] = Qt::Key_Ntilde;
++	string2key["Qt::Key_Ograve"] = Qt::Key_Ograve;
++	string2key["Qt::Key_Oacute"] = Qt::Key_Oacute;
++	string2key["Qt::Key_Ocircumflex"] = Qt::Key_Ocircumflex;
++	string2key["Qt::Key_Otilde"] = Qt::Key_Otilde;
++	string2key["Qt::Key_Odiaeresis"] = Qt::Key_Odiaeresis;
++	string2key["Qt::Key_multiply"] = Qt::Key_multiply;
++	string2key["Qt::Key_Ooblique"] = Qt::Key_Ooblique;
++	string2key["Qt::Key_Ugrave"] = Qt::Key_Ugrave;
++	string2key["Qt::Key_Uacute"] = Qt::Key_Uacute;
++	string2key["Qt::Key_Ucircumflex"] = Qt::Key_Ucircumflex;
++	string2key["Qt::Key_Udiaeresis"] = Qt::Key_Udiaeresis;
++	string2key["Qt::Key_Yacute"] = Qt::Key_Yacute;
++	string2key["Qt::Key_THORN"] = Qt::Key_THORN;
++	string2key["Qt::Key_ssharp"] = Qt::Key_ssharp;
++	string2key["Qt::Key_division"] = Qt::Key_division;
++	string2key["Qt::Key_ydiaeresis"] = Qt::Key_ydiaeresis;
++	string2key["Qt::Key_Multi_key"] = Qt::Key_Multi_key;
++	string2key["Qt::Key_Codeinput"] = Qt::Key_Codeinput;
++	string2key["Qt::Key_SingleCandidate"] = Qt::Key_SingleCandidate;
++	string2key["Qt::Key_MultipleCandidate"] = Qt::Key_MultipleCandidate;
++	string2key["Qt::Key_PreviousCandidate"] = Qt::Key_PreviousCandidate;
++	string2key["Qt::Key_Mode_switch"] = Qt::Key_Mode_switch;
++	string2key["Qt::Key_Kanji"] = Qt::Key_Kanji;
++	string2key["Qt::Key_Muhenkan"] = Qt::Key_Muhenkan;
++	string2key["Qt::Key_Henkan"] = Qt::Key_Henkan;
++	string2key["Qt::Key_Romaji"] = Qt::Key_Romaji;
++	string2key["Qt::Key_Hiragana"] = Qt::Key_Hiragana;
++	string2key["Qt::Key_Katakana"] = Qt::Key_Katakana;
++	string2key["Qt::Key_Hiragana_Katakana"] = Qt::Key_Hiragana_Katakana;
++	string2key["Qt::Key_Zenkaku"] = Qt::Key_Zenkaku;
++	string2key["Qt::Key_Hankaku"] = Qt::Key_Hankaku;
++	string2key["Qt::Key_Touroku"] = Qt::Key_Touroku;
++	string2key["Qt::Key_Zenkaku_Hankaku"] = Qt::Key_Zenkaku_Hankaku;
++	string2key["Qt::Key_Massyo"] = Qt::Key_Massyo;
++	string2key["Qt::Key_Kana_Lock"] = Qt::Key_Kana_Lock;
++	string2key["Qt::Key_Kana_Shift"] = Qt::Key_Kana_Shift;
++	string2key["Qt::Key_Eisu_Shift"] = Qt::Key_Eisu_Shift;
++	string2key["Qt::Key_Eisu_toggle"] = Qt::Key_Eisu_toggle;
++	string2key["Qt::Key_Hangul"] = Qt::Key_Hangul;
++	string2key["Qt::Key_Hangul_Start"] = Qt::Key_Hangul_Start;
++	string2key["Qt::Key_Hangul_End"] = Qt::Key_Hangul_End;
++	string2key["Qt::Key_Hangul_Hanja"] = Qt::Key_Hangul_Hanja;
++	string2key["Qt::Key_Hangul_Jamo"] = Qt::Key_Hangul_Jamo;
++	string2key["Qt::Key_Hangul_Romaja"] = Qt::Key_Hangul_Romaja;
++	string2key["Qt::Key_Hangul_Jeonja"] = Qt::Key_Hangul_Jeonja;
++	string2key["Qt::Key_Hangul_Banja"] = Qt::Key_Hangul_Banja;
++	string2key["Qt::Key_Hangul_PreHanja"] = Qt::Key_Hangul_PreHanja;
++	string2key["Qt::Key_Hangul_PostHanja"] = Qt::Key_Hangul_PostHanja;
++	string2key["Qt::Key_Hangul_Special"] = Qt::Key_Hangul_Special;
++	string2key["Qt::Key_Dead_Grave"] = Qt::Key_Dead_Grave;
++	string2key["Qt::Key_Dead_Acute"] = Qt::Key_Dead_Acute;
++	string2key["Qt::Key_Dead_Circumflex"] = Qt::Key_Dead_Circumflex;
++	string2key["Qt::Key_Dead_Tilde"] = Qt::Key_Dead_Tilde;
++	string2key["Qt::Key_Dead_Macron"] = Qt::Key_Dead_Macron;
++	string2key["Qt::Key_Dead_Breve"] = Qt::Key_Dead_Breve;
++	string2key["Qt::Key_Dead_Abovedot"] = Qt::Key_Dead_Abovedot;
++	string2key["Qt::Key_Dead_Diaeresis"] = Qt::Key_Dead_Diaeresis;
++	string2key["Qt::Key_Dead_Abovering"] = Qt::Key_Dead_Abovering;
++	string2key["Qt::Key_Dead_Doubleacute"] = Qt::Key_Dead_Doubleacute;
++	string2key["Qt::Key_Dead_Caron"] = Qt::Key_Dead_Caron;
++	string2key["Qt::Key_Dead_Cedilla"] = Qt::Key_Dead_Cedilla;
++	string2key["Qt::Key_Dead_Ogonek"] = Qt::Key_Dead_Ogonek;
++	string2key["Qt::Key_Dead_Voiced_Sound"] = Qt::Key_Dead_Voiced_Sound;
++ 	string2key["Qt::Key_Dead_Iota"] = Qt::Key_Dead_Iota;
++	string2key["Qt::Key_Dead_Belowdot"] = Qt::Key_Dead_Belowdot;
++	string2key["Qt::Key_Dead_Hook"] = Qt::Key_Dead_Hook;
++	string2key["Qt::Key_Dead_Horn"] = Qt::Key_Dead_Horn;
++
++	string2key["Qt::Key_F1"] = Qt::Key_F1;
++	string2key["Qt::Key_F2"] = Qt::Key_F2;
++	string2key["Qt::Key_F3"] = Qt::Key_F3;
++	string2key["Qt::Key_F4"] = Qt::Key_F4;
++	string2key["Qt::Key_F5"] = Qt::Key_F5;
++	string2key["Qt::Key_F6"] = Qt::Key_F6;
++	string2key["Qt::Key_F7"] = Qt::Key_F7;
++	string2key["Qt::Key_F8"] = Qt::Key_F8;
++	string2key["Qt::Key_F9"] = Qt::Key_F9;
++	string2key["Qt::Key_F10"] = Qt::Key_F10;
++	string2key["Qt::Key_F11"] = Qt::Key_F11;
++	string2key["Qt::Key_F12"] = Qt::Key_F12; 
++	string2key["Qt::Key_F13"] = Qt::Key_F13;
++	string2key["Qt::Key_F14"] = Qt::Key_F14;
++	string2key["Qt::Key_F15"] = Qt::Key_F15; 
++	string2key["Qt::Key_F16"] = Qt::Key_F16;
++	string2key["Qt::Key_F17"] = Qt::Key_F17;
++	string2key["Qt::Key_F18"] = Qt::Key_F18; 
++	string2key["Qt::Key_F19"] = Qt::Key_F19;
++	string2key["Qt::Key_F20"] = Qt::Key_F20;
++	string2key["Qt::Key_F21"] = Qt::Key_F21;
++	string2key["Qt::Key_F22"] = Qt::Key_F22;
++	string2key["Qt::Key_F23"] = Qt::Key_F23;
++	string2key["Qt::Key_F24"] = Qt::Key_F24;
++	string2key["Qt::Key_F25"] = Qt::Key_F25;
++	string2key["Qt::Key_F26"] = Qt::Key_F26;
++	string2key["Qt::Key_F27"] = Qt::Key_F27; 
++	string2key["Qt::Key_F28"] = Qt::Key_F28;
++	string2key["Qt::Key_F29"] = Qt::Key_F29;
++	string2key["Qt::Key_F30"] = Qt::Key_F30;  
++	string2key["Qt::Key_F31"] = Qt::Key_F31;
++	string2key["Qt::Key_F32"] = Qt::Key_F32; 
++	string2key["Qt::Key_F33"] = Qt::Key_F33;
++	string2key["Qt::Key_F34"] = Qt::Key_F34;
++	string2key["Qt::Key_F35"] = Qt::Key_F35; 
++	
++	
++	string2key["Qt::Key_0"] = Qt::Key_0;
++	string2key["Qt::Key_1"] = Qt::Key_1;
++	string2key["Qt::Key_2"] = Qt::Key_2;
++	string2key["Qt::Key_3"] = Qt::Key_3;
++	string2key["Qt::Key_4"] = Qt::Key_4;
++	string2key["Qt::Key_5"] = Qt::Key_5;
++	string2key["Qt::Key_6"] = Qt::Key_6;
++	string2key["Qt::Key_7"] = Qt::Key_7;
++	string2key["Qt::Key_8"] = Qt::Key_8;
++	string2key["Qt::Key_9"] = Qt::Key_9;
++
++	string2key["Qt::Key_A"] = Qt::Key_A;
++	string2key["Qt::Key_B"] = Qt::Key_B;
++	string2key["Qt::Key_C"] = Qt::Key_C;
++	string2key["Qt::Key_D"] = Qt::Key_D;
++	string2key["Qt::Key_E"] = Qt::Key_E;
++	string2key["Qt::Key_F"] = Qt::Key_F;
++	string2key["Qt::Key_G"] = Qt::Key_G;
++	string2key["Qt::Key_H"] = Qt::Key_H;
++	string2key["Qt::Key_I"] = Qt::Key_I;
++	string2key["Qt::Key_J"] = Qt::Key_J;
++	string2key["Qt::Key_K"] = Qt::Key_K;
++	string2key["Qt::Key_L"] = Qt::Key_L;
++	string2key["Qt::Key_M"] = Qt::Key_M;
++	string2key["Qt::Key_N"] = Qt::Key_N;
++	string2key["Qt::Key_O"] = Qt::Key_O;
++	string2key["Qt::Key_P"] = Qt::Key_P;
++	string2key["Qt::Key_Q"] = Qt::Key_Q;
++	string2key["Qt::Key_R"] = Qt::Key_R;
++	string2key["Qt::Key_S"] = Qt::Key_S;
++	string2key["Qt::Key_T"] = Qt::Key_T;
++	string2key["Qt::Key_U"] = Qt::Key_U;
++	string2key["Qt::Key_V"] = Qt::Key_V;
++	string2key["Qt::Key_W"] = Qt::Key_W;
++	string2key["Qt::Key_X"] = Qt::Key_X;
++	string2key["Qt::Key_Y"] = Qt::Key_Y;
++	string2key["Qt::Key_Z"] = Qt::Key_Z;
++	
++	string2key["Qt::Key_VolumeDown"] = Qt::Key_VolumeDown;
++	string2key["Qt::Key_VolumeUp"] = Qt::Key_VolumeUp;
++	string2key["Qt::Key_VolumeMute"] = Qt::Key_VolumeMute;
++	string2key["Qt::Key_Back"] = Qt::Key_Back;
++	string2key["Qt::Key_Forward"] = Qt::Key_Forward;
++	string2key["Qt::Key_Play"] = Qt::Key_Play;
++	string2key["Qt::Key_Stop"] = Qt::Key_Stop;
++	string2key["Qt::Key_Zoom"] = Qt::Key_Zoom;
++	string2key["Qt::Key_Refresh"] = Qt::Key_Refresh;
++	
++	string2key["Qt::Key_MediaPlay"] = Qt::Key_MediaPlay;
++	string2key["Qt::Key_MediaStop"] = Qt::Key_MediaStop;
++	string2key["Qt::Key_MediaPrevious"] = Qt::Key_MediaPrevious;
++	string2key["Qt::Key_MediaNext"] = Qt::Key_MediaNext;
++	string2key["Qt::Key_MediaRecord"] = Qt::Key_MediaRecord;
++	string2key["Qt::Key_MediaLast"] = Qt::Key_MediaLast;
++	
++	string2key["Qt::Key_HomePage"] = Qt::Key_HomePage;
++	string2key["Qt::Key_Favorites"] = Qt::Key_Favorites;
++	string2key["Qt::Key_Search"] = Qt::Key_Search;
++	string2key["Qt::Key_Standby"] = Qt::Key_Standby;
++	string2key["Qt::Key_OpenUrl"] = Qt::Key_OpenUrl;
++	
++	string2key["Qt::Key_BassBoost"] = Qt::Key_BassBoost;
++	string2key["Qt::Key_BassUp"] = Qt::Key_BassUp;
++	string2key["Qt::Key_BassDown"] = Qt::Key_BassDown;
++	string2key["Qt::Key_TrebleUp"] = Qt::Key_TrebleUp;
++	string2key["Qt::Key_TrebleDown"] = Qt::Key_TrebleDown;
++	
++	string2key["Qt::Key_LaunchMail"] = Qt::Key_LaunchMail;
++	string2key["Qt::Key_LaunchMedia"] = Qt::Key_LaunchMedia;
++	string2key["Qt::Key_Launch0"] = Qt::Key_Launch0;
++	string2key["Qt::Key_Launch1"] = Qt::Key_Launch1;
++	string2key["Qt::Key_Launch2"] = Qt::Key_Launch2;
++	string2key["Qt::Key_Launch3"] = Qt::Key_Launch3;
++	string2key["Qt::Key_Launch4"] = Qt::Key_Launch4;
++	string2key["Qt::Key_Launch5"] = Qt::Key_Launch5;
++	string2key["Qt::Key_Launch6"] = Qt::Key_Launch6;
++	string2key["Qt::Key_Launch7"] = Qt::Key_Launch7;
++	string2key["Qt::Key_Launch8"] = Qt::Key_Launch8;
++	string2key["Qt::Key_Launch9"] = Qt::Key_Launch9;
++	string2key["Qt::Key_LaunchA"] = Qt::Key_LaunchA;
++	string2key["Qt::Key_LaunchB"] = Qt::Key_LaunchB;
++	string2key["Qt::Key_LaunchC"] = Qt::Key_LaunchC;
++	string2key["Qt::Key_LaunchD"] = Qt::Key_LaunchD;
++	string2key["Qt::Key_LaunchE"] = Qt::Key_LaunchE;
++	string2key["Qt::Key_LaunchF"] = Qt::Key_LaunchF;
++	
++	string2key["Qt::Key_Select"] = Qt::Key_Select;
++	string2key["Qt::Key_Yes"] = Qt::Key_Yes;
++	string2key["Qt::Key_No"] = Qt::Key_No;
++	string2key["Qt::Key_Cancel"] = Qt::Key_Cancel;
++	string2key["Qt::Key_Execute"] = Qt::Key_Execute;
++	string2key["Qt::Key_Printer"] = Qt::Key_Printer;
++	string2key["Qt::Key_Sleep"] = Qt::Key_Sleep;
++	
++	string2key["Qt::Key_Context1"] = Qt::Key_Context1;
++	string2key["Qt::Key_Context2"] = Qt::Key_Context2;
++	string2key["Qt::Key_Context3"] = Qt::Key_Context3;
++	string2key["Qt::Key_Context4"] = Qt::Key_Context4;
++	string2key["Qt::Key_Call"] = Qt::Key_Call;
++	string2key["Qt::Key_Hangup"] = Qt::Key_Hangup;
++	string2key["Qt::Key_Flip"] = Qt::Key_Flip;
++}
++
++void QAmlogicIRHandler::initIrMap()
++{
++	FILE* fd = NULL;
++
++	char *buf = NULL;
++	size_t size = 0;
++	ssize_t ret = 0;
++	char keyString[32];
++	
++	if((fd=fopen("/etc/irmap.conf", "r")) == NULL)
++	{
++		qWarning("can not find ir map file, use default ir map\n");
++		pIrMap = defaultIrMap;
++	}
++	else
++	{
++		//initialize ir key table
++		string2KeyTable();
++
++		int i=0;
++		for(; i<MAX_KEY_NUMBER-1; i++)
++		{
++			ret = getline(&buf, &size, fd);
++			if(ret == -1)
++				break;
++
++			sscanf(buf, "%x %s %[^\n]", &readMap[i].irCode, keyString, readMap[i].irString);
++			if(string2key.contains(keyString))
++			{
++				readMap[i].keyCode = string2key[keyString];
++			}
++			else
++			{
++				qWarning("warning::: can not find %s in key map table\n", keyString);
++				i--;	//ignore this key 
++				continue;
++			}
++
++			if(buf)
++			{
++				free(buf);
++				buf = NULL;
++			}
++
++			
++		}
++		readMap[i].irCode = INVALID_KEY; //end of key list
++		pIrMap = readMap;
++
++		if((ret = getline(&buf, &size, fd)) > 0)
++			qWarning("Warning::: The number of key beyond %d in irmap.conf\n", MAX_KEY_NUMBER-1);
++
++		if(buf)
++			free(buf);
++	}
++
++	if(fd)
++		fclose(fd);
++
++//only for debug
++#if 0 
++	int x = 0;
++	qDebug("===================================IR MAP=============================\n");
++	while(pIrMap[x].irCode != 0)
++	{
++		qDebug("%10x\t\t%10x\t\t%s\n", pIrMap[x].irCode, pIrMap[x].keyCode, pIrMap[x].irString);
++		x++;
++	}
++	qDebug("=======================================================================\n");
++#endif 
++}
++
++IrMap* QAmlogicIRHandler::transcode(unsigned int irCode)
++{
++	int idx = 0;
++	while(pIrMap[idx].irCode != INVALID_KEY)
++	{
++		if(irCode == pIrMap[idx].irCode)
++			return &(pIrMap[idx]);
++			
++		idx++;
++	}
++
++	qWarning("can not find ir 0x%x in ir map\n", irCode);
++	return NULL;
++}
++
++void QAmlogicIRHandler::readKeyboardData()
++{
++    struct input_event levt[64];
++    int readLen;
++    IrMap* pIr;
++
++	readLen = read (kbdFD, levt, sizeof(levt));
++	for(unsigned int i=0; i<(readLen/sizeof(struct input_event)); i++)
++	{
++		bool press = false;
++		bool repeat = false;
++		int keyCode;
++
++		pIr = transcode(levt[i].code);
++
++		if(pIr == NULL)
++			continue;
++		
++		keyCode = pIr->keyCode;
++		
++		if(levt[i].value == 1) 
++			press = true;
++		else if(levt[i].value == 2)
++			repeat = true;
++			
++		QWSServer::processKeyEvent(keyCode, keyCode, Qt::NoModifier, press, repeat);
++		qDebug("processKeyEvent key:%s  keyCode:0x%x  isPress:%d   isRepeat:%d\n", pIr->irString, keyCode, press, repeat);
++	}
++}
++
++QT_END_NAMESPACE
++
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbdamlogic.h qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbdamlogic.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbdamlogic.h	1969-12-31 16:00:00.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbdamlogic.h	2010-04-21 20:11:29.852442857 -0700
+@@ -0,0 +1,93 @@
++/****************************************************************************
++**
++** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
++** Contact: Nokia Corporation (qt-info@nokia.com)
++**
++** This file is part of the QtGui module of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial Usage
++** Licensees holding valid Qt Commercial licenses may use this file in
++** accordance with the Qt Commercial License Agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Nokia.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Nokia gives you certain
++** additional rights. These rights are described in the Nokia Qt LGPL
++** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
++** package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++** If you are unsure which license is appropriate for your use, please
++** contact the sales department at http://www.qtsoftware.com/contact.
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#ifndef QKBDAMLOIC_H
++#define QKBDAMLOIC_H
++
++#include <QtGui/qkbd_qws.h>
++
++#define MAX_KEY_NUMBER 100
++
++typedef struct 
++{
++	unsigned int irCode;
++	int keyCode;
++	char irString[32];
++}IrMap;
++
++QT_BEGIN_HEADER
++
++QT_BEGIN_NAMESPACE
++
++QT_MODULE(Gui)
++
++class QSocketNotifier;
++
++class QAmlogicIRHandler : public QObject, public QWSKeyboardHandler
++{
++    Q_OBJECT
++public:
++    QAmlogicIRHandler(const QString &device);
++    virtual ~QAmlogicIRHandler();
++
++private Q_SLOTS:
++    void readKeyboardData();
++
++private:
++	void initIrMap();
++	IrMap* transcode(unsigned int irCode);
++	void string2KeyTable();
++	
++    QString terminalName;
++    int kbdFD;
++    int kbdIdx;
++    QSocketNotifier *notifier;
++	
++	IrMap* pIrMap;
++	IrMap readMap[MAX_KEY_NUMBER];
++	QMap<QString, int> string2key;
++};
++
++QT_END_NAMESPACE
++
++QT_END_HEADER
++
++#endif // QKBDAMLOIC_H
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbddriverfactory_qws.cpp qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbddriverfactory_qws.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qkbddriverfactory_qws.cpp	2010-02-11 07:55:22.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qkbddriverfactory_qws.cpp	2010-04-21 20:11:29.852442857 -0700
+@@ -49,6 +49,7 @@
+ #include "qkbdum_qws.h"
+ #include "qkbdvfb_qws.h"
+ #include "qkbdqnx_qws.h"
++#include "qkbdamlogic.h"
+ #include <stdlib.h>
+ #include "private/qfactoryloader_p.h"
+ #include "qkbddriverplugin_qws.h"
+@@ -101,7 +102,10 @@
+ */
+ QWSKeyboardHandler *QKbdDriverFactory::create(const QString& key, const QString& device)
+ {
++    printf("key[%s]device[%s]\n", key.toLatin1().constData(), device.toLatin1().constData());
+     QString driver = key.toLower();
++    if (driver == QLatin1String("amlir"))
++        return new QAmlogicIRHandler(device);
+ #if defined(Q_OS_QNX) && !defined(QT_NO_QWS_KBD_QNX)
+     if (driver == QLatin1String("qnx") || driver.isEmpty())
+         return new QWSQnxKeyboardHandler(device);

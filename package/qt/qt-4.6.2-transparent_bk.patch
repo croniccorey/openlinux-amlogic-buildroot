@@ -1,0 +1,11 @@
+diff -Nur qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qwindowsystem_qws.cpp qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qwindowsystem_qws.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/gui/embedded/qwindowsystem_qws.cpp	2010-02-11 07:55:22.000000000 -0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/gui/embedded/qwindowsystem_qws.cpp	2010-04-21 20:11:29.852442857 -0700
+@@ -1431,7 +1431,7 @@
+     clientMap[-1] = new QWSClient(q, 0, 0);
+ 
+     if (!bgBrush)
+-        bgBrush = new QBrush(QColor(0x20, 0xb0, 0x50));
++        bgBrush = new QBrush(QColor(0, 0, 0, 0));
+ 
+     initializeCursor();

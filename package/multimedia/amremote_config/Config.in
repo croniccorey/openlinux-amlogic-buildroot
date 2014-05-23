@@ -1,0 +1,8 @@
+config BR2_PACKAGE_AMREMOTE_CONFIG
+	bool "amremote_config"
+	help
+	  amlogic remote configure tool.
+
+	  http://openlinux.amlogic.com
+
+

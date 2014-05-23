@@ -1,0 +1,8 @@
+config BR2_PACKAGE_LIBBTTV
+	bool "libbttv"
+	select BR2_PACKAGE_LIBXFER
+	select BR2_PACKAGE_QT
+        help
+          bttv lib
+
+
