@@ -1,0 +1,13 @@
+--- linux-amlogic-3.0/drivers/amlogic/nand/Makefile.orig	2013-12-26 12:02:59.176798664 +0800
++++ linux-amlogic-3.0/drivers/amlogic/nand/Makefile	2013-12-26 12:03:04.832798769 +0800
+@@ -9,8 +9,8 @@ obj-$(CONFIG_ARCH_MESON6)	+= m3_nand.o
+ obj-$(CONFIG_ARCH_MESON6TV)	+= m3_nand.o
+ #obj-$(CONFIG_AML_NFTL)		+= aml_nftl/
+ #ifeq ($(CONFIG_AML_NFTL_NEW), y)              
+-#	obj-$(CONFIG_AML_NFTL_NEW)	+= aml_nftl_new/
+-	obj-$(CONFIG_AML_NFTL_NEW)	+= ../../../../hardware/amlogic/nand/aml_nftl_new/
++	obj-$(CONFIG_AML_NFTL_NEW)	+= aml_nftl_new/
++#	obj-$(CONFIG_AML_NFTL_NEW)	+= ../../../../hardware/amlogic/nand/aml_nftl_new/
+ #else                                          
+ 	obj-$(CONFIG_AML_NFTL)		+= aml_nftl/      
+ #endif
