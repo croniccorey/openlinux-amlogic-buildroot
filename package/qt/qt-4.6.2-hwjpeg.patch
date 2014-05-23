@@ -1,0 +1,3053 @@
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/amstream.h qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/amstream.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/amstream.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/amstream.h	2010-06-10 22:01:36.743105000 +0800
+@@ -0,0 +1,136 @@
++/*
++ * AMLOGIC Audio/Video streaming port driver.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the named License,
++ * or any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
++ *
++ * Author:  Tim Yao <timyao@amlogic.com>
++ *
++ */
++
++#ifndef AMSTREAM_H
++#define AMSTREAM_H
++
++#define PORT_FLAG_IN_USE    0x0001
++#define PORT_FLAG_VFORMAT   0x0002
++#define PORT_FLAG_AFORMAT   0x0004
++#define PORT_FLAG_FORMAT    (PORT_FLAG_VFORMAT | PORT_FLAG_AFORMAT)
++#define PORT_FLAG_VID       0x0008
++#define PORT_FLAG_AID       0x0010
++#define PORT_FLAG_ID        (PORT_FLAG_VID | PORT_FLAG_AID)
++#define PORT_FLAG_INITED  0x100
++
++#define PORT_TYPE_VIDEO     0x01
++#define PORT_TYPE_AUDIO     0x02
++#define PORT_TYPE_MPTS      0x04
++#define PORT_TYPE_MPPS      0x08
++#define PORT_TYPE_ES        0x10
++#define PORT_TYPE_RM        0x20
++
++#define AMSTREAM_IOC_MAGIC  'S'
++
++#define AMSTREAM_IOC_VB_START   _IOW(AMSTREAM_IOC_MAGIC, 0x00, int)
++#define AMSTREAM_IOC_VB_SIZE    _IOW(AMSTREAM_IOC_MAGIC, 0x01, int)
++#define AMSTREAM_IOC_AB_START   _IOW(AMSTREAM_IOC_MAGIC, 0x02, int)
++#define AMSTREAM_IOC_AB_SIZE    _IOW(AMSTREAM_IOC_MAGIC, 0x03, int)
++#define AMSTREAM_IOC_VFORMAT    _IOW(AMSTREAM_IOC_MAGIC, 0x04, int)
++#define AMSTREAM_IOC_AFORMAT    _IOW(AMSTREAM_IOC_MAGIC, 0x05, int)
++#define AMSTREAM_IOC_VID        _IOW(AMSTREAM_IOC_MAGIC, 0x06, int)
++#define AMSTREAM_IOC_AID        _IOW(AMSTREAM_IOC_MAGIC, 0x07, int)
++#define AMSTREAM_IOC_VB_STATUS  _IOR(AMSTREAM_IOC_MAGIC, 0x08, unsigned long)
++#define AMSTREAM_IOC_AB_STATUS  _IOR(AMSTREAM_IOC_MAGIC, 0x09, unsigned long)
++#define AMSTREAM_IOC_SYSINFO    _IOW(AMSTREAM_IOC_MAGIC, 0x0a, int)
++#define AMSTREAM_IOC_ACHANNEL   _IOW(AMSTREAM_IOC_MAGIC, 0x0b, int)
++#define AMSTREAM_IOC_SAMPLERATE _IOW(AMSTREAM_IOC_MAGIC, 0x0c, int)
++#define AMSTREAM_IOC_DATAWIDTH  _IOW(AMSTREAM_IOC_MAGIC, 0x0d, int)
++#define AMSTREAM_IOC_TSTAMP     _IOW(AMSTREAM_IOC_MAGIC, 0x0e, unsigned long)
++#define AMSTREAM_IOC_VDECSTAT   _IOR(AMSTREAM_IOC_MAGIC, 0x0f, unsigned long)
++#define AMSTREAM_IOC_ADECSTAT   _IOR(AMSTREAM_IOC_MAGIC, 0x10, unsigned long)
++
++#define AMSTREAM_IOC_PORT_INIT   _IO(AMSTREAM_IOC_MAGIC, 0x11)
++#define AMSTREAM_IOC_TRICKMODE  _IOW(AMSTREAM_IOC_MAGIC, 0x12, unsigned long)
++#define TRICKMODE_NONE       0x00
++#define TRICKMODE_I          0x01
++
++enum VIDEO_DEC_TYPE
++{
++        VIDEO_DEC_FORMAT_UNKNOW,
++        VIDEO_DEC_FORMAT_MPEG4_3,
++        VIDEO_DEC_FORMAT_MPEG4_4,
++        VIDEO_DEC_FORMAT_MPEG4_5,
++        VIDEO_DEC_FORMAT_H264,
++        VIDEO_DEC_FORMAT_MJPEG,
++        VIDEO_DEC_FORMAT_MP4,
++        VIDEO_DEC_FORMAT_H263,
++        VIDEO_DEC_FORMAT_REAL_8,
++        VIDEO_DEC_FORMAT_REAL_9,
++};
++
++struct buf_status {
++        int size;
++        int data_len;
++        int free_len;
++};
++
++
++struct vdec_status {
++        unsigned int width;
++        unsigned int height;
++        float fps;
++        unsigned int error_count;
++        unsigned int status;
++};
++
++struct adec_status {
++        unsigned int channels;
++        unsigned int sample_rate;
++        unsigned int resolution;
++        unsigned int error_count;
++        unsigned int status;
++};
++
++struct am_io_param {
++    union {
++          int data;
++          int id;//get bufstatus? //or others
++    };
++
++    int len; //buffer size;
++
++    union {
++        char buf[1];
++        struct buf_status status;
++        struct vdec_status vstatus;
++        struct adec_status astatus;
++    };
++};
++
++struct dec_sysinfo {
++    unsigned int    format;
++    unsigned int    width;
++    unsigned int    height;
++    unsigned int    rate;
++    unsigned int    extra;
++    unsigned int    status;
++    unsigned int    ratio;
++    void *          param;
++};
++
++
++void set_vdec_func(int (*vdec_func)(struct vdec_status *));
++void set_adec_func(int (*adec_func)(struct adec_status *));
++void set_trickmode_func(int (*trickmode_func)(unsigned long trickmode));
++
++#endif /* AMSTREAM_H */
++
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/ge2d.h qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/ge2d.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/ge2d.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/ge2d.h	2010-06-10 22:01:36.743105000 +0800
+@@ -0,0 +1,179 @@
++/****************************************************************************
++**
++** Copyright (C) 2010 AMLOGIC, INC.
++** All rights reserved.
++****************************************************************************/
++
++#ifndef GE2D_H
++#define GE2D_H
++
++#define  FBIOPUT_GE2D_STRETCHBLIT_NOALPHA   0x4702
++#define  FBIOPUT_GE2D_BLIT_NOALPHA			0x4701
++#define  FBIOPUT_GE2D_BLEND					0x4700
++#define  FBIOPUT_GE2D_BLIT					0x46ff
++#define  FBIOPUT_GE2D_STRETCHBLIT   		0x46fe
++#define  FBIOPUT_GE2D_FILLRECTANGLE 		0x46fd
++#define  FBIOPUT_GE2D_SRCCOLORKEY   		0x46fc
++#define  FBIOPUT_OSD_SRCCOLORKEY			0x46fb
++#define  FBIOPUT_OSD_SRCKEY_ENABLE			0x46fa
++#define  FBIOPUT_GE2D_CONFIG				0x46f9
++
++typedef enum  	
++{
++	OSD0_OSD0 = 0,
++	OSD0_OSD1,	 
++	OSD1_OSD1,
++	OSD1_OSD0,
++	ALLOC_OSD0,
++	ALLOC_OSD1,
++	ALLOC_ALLOC,
++	TYPE_INVALID,
++} ge2d_src_dst_t;
++
++
++
++typedef struct {
++	unsigned long  addr;
++	unsigned int	w;
++	unsigned int	h;
++}config_planes_t;
++
++typedef    struct {
++	int  src_dst_type;
++	int  alu_const_color;
++	unsigned int src_format;
++	unsigned int dst_format ; //add for src&dst all in user space.
++
++	config_planes_t src_planes[4];
++	config_planes_t dst_planes[4];
++}config_para_t;
++
++typedef struct {
++	int	x;   /* X coordinate of its top-left point */
++	int	y;   /* Y coordinate of its top-left point */
++	int	w;   /* width of it */
++	int	h;   /* height of it */
++} rectangle_t;
++
++typedef  struct {
++	unsigned int color ;
++	rectangle_t src1_rect;
++	rectangle_t src2_rect;
++	rectangle_t	dst_rect;
++	int op;
++} ge2d_op_para_t ;
++
++#define GE2D_ENDIAN_SHIFT		24
++#define GE2D_ENDIAN_MASK		(0x1 << GE2D_ENDIAN_SHIFT)
++#define GE2D_BIG_ENDIAN			(0 << GE2D_ENDIAN_SHIFT)
++#define GE2D_LITTLE_ENDIAN		(1 << GE2D_ENDIAN_SHIFT)
++
++#define GE2D_COLOR_MAP_SHIFT	20
++#define GE2D_COLOR_MAP_MASK		(0xf << GE2D_COLOR_MAP_SHIFT)
++/* 16 bit */
++#define GE2D_COLOR_MAP_YUV422	(0 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGB655	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUV655	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGB844	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUV844	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGBA6442	(3 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA6442	(3 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGBA4444	(4 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA4444	(4 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGB565	(5 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUV565	(5 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ARGB4444	(6 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AYUV4444	(6 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ARGB1555	(7 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AYUV1555	(7 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGBA4642	(8 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA4642	(8 << GE2D_COLOR_MAP_SHIFT)
++/* 24 bit */
++#define GE2D_COLOR_MAP_RGB888	(0 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUV444	(0 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGBA5658	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA5658	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ARGB8565	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AYUV8565	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_RGBA6666	(3 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA6666	(3 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ARGB6666	(4 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AYUV6666	(4 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_BGR888	(5 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_VUY888	(5 << GE2D_COLOR_MAP_SHIFT)
++/* 32 bit */
++#define GE2D_COLOR_MAP_RGBA8888	(0 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_YUVA8888	(0 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ARGB8888	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AYUV8888	(1 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_ABGR8888	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_AVUY8888	(2 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_BGRA8888	(3 << GE2D_COLOR_MAP_SHIFT)
++#define GE2D_COLOR_MAP_VUYA8888	(3 << GE2D_COLOR_MAP_SHIFT)
++
++#define GE2D_FMT_S8_Y			0x00000 /* 00_00_0_00_0_00 */
++#define GE2D_FMT_S8_CB			0x00040 /* 00_01_0_00_0_00 */
++#define GE2D_FMT_S8_CR			0x00080 /* 00_10_0_00_0_00 */
++#define GE2D_FMT_S8_R			0x00000 /* 00_00_0_00_0_00 */
++#define GE2D_FMT_S8_G			0x00040 /* 00_01_0_00_0_00 */
++#define GE2D_FMT_S8_B			0x00080 /* 00_10_0_00_0_00 */
++#define GE2D_FMT_S8_A			0x000c0 /* 00_11_0_00_0_00 */
++#define GE2D_FMT_S8_LUT			0x00020 /* 00_00_1_00_0_00 */
++#define GE2D_FMT_S16_YUV422		0x20100 /* 01_00_0_00_0_00 */
++#define GE2D_FMT_S16_RGB		(GE2D_LITTLE_ENDIAN|0x00100) /* 01_00_0_00_0_00 */
++#define GE2D_FMT_S24_YUV444		0x20200 /* 10_00_0_00_0_00 */
++#define GE2D_FMT_S24_RGB		(GE2D_LITTLE_ENDIAN|0x00200) /* 10_00_0_00_0_00 */
++#define GE2D_FMT_S32_YUVA444	0x20300 /* 11_00_0_00_0_00 */
++#define GE2D_FMT_S32_RGBA		(GE2D_LITTLE_ENDIAN|0x00300) /* 11_00_0_00_0_00 */
++#define GE2D_FMT_M24_YUV420		0x20007 /* 00_00_0_00_1_11 */
++#define GE2D_FMT_M24_YUV422		0x20006 /* 00_00_0_00_1_10 */
++#define GE2D_FMT_M24_YUV444		0x20004 /* 00_00_0_00_1_00 */
++#define GE2D_FMT_M24_RGB		0x00004 /* 00_00_0_00_1_00 */
++#define GE2D_FMT_M24_YUV420T	0x20017 /* 00_00_0_10_1_11 */
++#define GE2D_FMT_M24_YUV420B	0x2001f /* 00_00_0_11_1_11 */
++#define GE2D_FMT_S16_YUV422T	0x20110 /* 01_00_0_10_0_00 */
++#define GE2D_FMT_S16_YUV422B	0x20138 /* 01_00_0_11_0_00 */
++#define GE2D_FMT_S24_YUV444T	0x20210 /* 10_00_0_10_0_00 */
++#define GE2D_FMT_S24_YUV444B	0x20218 /* 10_00_0_11_0_00 */
++
++#define GE2D_FORMAT_S8_Y			(GE2D_FMT_S8_Y)           
++#define GE2D_FORMAT_S8_CB			(GE2D_FMT_S8_CB)           
++#define GE2D_FORMAT_S8_CR			(GE2D_FMT_S8_CR)           
++#define GE2D_FORMAT_S8_R			(GE2D_FMT_S8_R)           
++#define GE2D_FORMAT_S8_G			(GE2D_FMT_S8_G)           
++#define GE2D_FORMAT_S8_B			(GE2D_FMT_S8_B)           
++#define GE2D_FORMAT_S8_A			(GE2D_FMT_S8_A)           
++#define GE2D_FORMAT_S8_LUT			(GE2D_FMT_S8_LUT)         
++#define GE2D_FORMAT_S16_YUV422		(GE2D_FMT_S16_YUV422	| GE2D_COLOR_MAP_YUV422)
++#define GE2D_FORMAT_S16_RGB_655		(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGB655)  
++#define GE2D_FORMAT_S16_RGB_565		(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGB565) 
++#define GE2D_FORMAT_S16_RGB_844		(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGB844) 
++#define GE2D_FORMAT_S16_RGBA_6442	(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGBA6442)
++#define GE2D_FORMAT_S16_RGBA_4444	(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGBA4444)
++#define GE2D_FORMAT_S16_ARGB_4444	(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_ARGB4444)
++#define GE2D_FORMAT_S16_ARGB_1555	(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_ARGB1555)
++#define GE2D_FORMAT_S16_RGBA_4642	(GE2D_FMT_S16_RGB		| GE2D_COLOR_MAP_RGBA4642)
++#define GE2D_FORMAT_S24_YUV444		(GE2D_FMT_S24_YUV444	| GE2D_COLOR_MAP_YUV444) 
++#define GE2D_FORMAT_S24_RGB			(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_RGB888)   
++#define GE2D_FORMAT_S32_YUVA444		(GE2D_FMT_S32_YUVA444	| GE2D_COLOR_MAP_YUVA4444)   
++#define GE2D_FORMAT_S32_RGBA		(GE2D_FMT_S32_RGBA		| GE2D_COLOR_MAP_RGBA8888) 
++#define GE2D_FORMAT_S32_ARGB		(GE2D_FMT_S32_RGBA		| GE2D_COLOR_MAP_ARGB8888) 
++#define GE2D_FORMAT_S32_ABGR		(GE2D_FMT_S32_RGBA		| GE2D_COLOR_MAP_ABGR8888) 
++#define GE2D_FORMAT_S32_BGRA		(GE2D_FMT_S32_RGBA		| GE2D_COLOR_MAP_BGRA8888) 
++#define GE2D_FORMAT_S24_RGBA_5658	(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_RGBA5658)  
++#define GE2D_FORMAT_S24_ARGB_8565	(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_ARGB8565) 
++#define GE2D_FORMAT_S24_RGBA_6666	(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_RGBA6666)
++#define GE2D_FORMAT_S24_ARGB_6666	(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_ARGB6666)
++#define GE2D_FORMAT_S24_BGR			(GE2D_FMT_S24_RGB		| GE2D_COLOR_MAP_BGR888)
++#define GE2D_FORMAT_M24_YUV420		(GE2D_FMT_M24_YUV420)   
++#define GE2D_FORMAT_M24_YUV422		(GE2D_FMT_M24_YUV422)
++#define GE2D_FORMAT_M24_YUV444		(GE2D_FMT_M24_YUV444)
++#define GE2D_FORMAT_M24_RGB			(GE2D_FMT_M24_RGB)
++#define GE2D_FORMAT_M24_YUV420T		(GE2D_FMT_M24_YUV420T)
++#define GE2D_FORMAT_M24_YUV420B		(GE2D_FMT_M24_YUV420B)
++#define GE2D_FORMAT_S16_YUV422T		(GE2D_FMT_S16_YUV422T | GE2D_COLOR_MAP_YUV422)
++#define GE2D_FORMAT_S16_YUV422B		(GE2D_FMT_S16_YUV422B | GE2D_COLOR_MAP_YUV422)   
++#define GE2D_FORMAT_S24_YUV444T		(GE2D_FMT_S24_YUV444T | GE2D_COLOR_MAP_YUV444)   
++#define GE2D_FORMAT_S24_YUV444B		(GE2D_FMT_S24_YUV444B | GE2D_COLOR_MAP_YUV444)
++
++#endif /* GE2D_H */
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/jpegdec.h qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/jpegdec.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/jpegdec.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/jpegdec.h	2010-06-10 22:01:36.743105000 +0800
+@@ -0,0 +1,84 @@
++/*
++ * AMLOGIC HW Jpeg decoder driver.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the named License,
++ * or any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
++ *
++ * Author:  Tim Yao <timyao@amlogic.com>
++ *
++ */
++
++#ifndef JPEGDEC_H
++#define JPEGDEC_H
++
++#define JPEGDEC_IOC_MAGIC  'J'
++
++#define JPEGDEC_IOC_INFOCONFIG	_IOW(JPEGDEC_IOC_MAGIC, 0x00, unsigned int)
++#define JPEGDEC_IOC_DECCONFIG	_IOW(JPEGDEC_IOC_MAGIC, 0x01, unsigned int)
++#define JPEGDEC_IOC_INFO		_IOW(JPEGDEC_IOC_MAGIC, 0x02, unsigned int)
++#define JPEGDEC_IOC_STAT		_IOW(JPEGDEC_IOC_MAGIC, 0x03, unsigned int)
++
++#define JPEGDEC_OPT_THUMBNAIL_ONLY		0x01
++#define JPEGDEC_OPT_THUMBNAIL_PREFERED	0x02
++#define JPEGDEC_OPT_FULLRANGE			0x04
++#define JPEGDEC_OPT_SRC_CROP			0x08
++
++#define JPEGINFO_TYPE_PROGRESSIVE		0x01
++#define JPEGINFO_TYPE_MULTISCAN			0x02
++#define JPEGINFO_TYPE_GRAYSCALE			0x04
++
++#define JPEGDEC_STAT_WAIT_DATA			0x01
++#define JPEGDEC_STAT_WAIT_INFOCONFIG	0x02
++#define JPEGDEC_STAT_WAIT_DECCONFIG		0x04
++#define JPEGDEC_STAT_ERROR				0x08
++#define JPEGDEC_STAT_UNSUPPORT			0x10
++#define JPEGDEC_STAT_INFO_READY			0x20
++#define JPEGDEC_STAT_DONE				0x40
++
++typedef enum {
++	CLKWISE_0    = 0,
++	CLKWISE_90   = 1,
++	CLKWISE_180  = 2,
++	CLKWISE_270  = 3,
++} jpegdec_angle_t;
++
++typedef struct {
++	unsigned long	addr_y;
++	unsigned long	addr_u;
++	unsigned long	addr_v;
++	unsigned 		canvas_width;
++
++	unsigned		opt;
++
++	unsigned		src_crop_x;
++	unsigned		src_crop_y;
++	unsigned		src_crop_w;
++	unsigned		src_crop_h;
++	
++	unsigned		dec_x;
++	unsigned		dec_y;
++	unsigned		dec_w;
++	unsigned		dec_h;	
++	jpegdec_angle_t	angle;
++} jpegdec_config_t;
++
++typedef struct {
++	unsigned width;
++	unsigned height;
++	unsigned comp_num;
++	unsigned type;
++} jpegdec_info_t;
++
++#endif /* JPEGDEC_H */
++
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/vformat.h qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/vformat.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/3rdparty/libaml/vformat.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/3rdparty/libaml/vformat.h	2010-06-10 22:01:36.743105000 +0800
+@@ -0,0 +1,35 @@
++/*
++ * AMLOGIC Audio/Video streaming port driver.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the named License,
++ * or any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
++ *
++ * Author:  Tim Yao <timyao@amlogic.com>
++ *
++ */
++
++#ifndef VFORMAT_H
++#define VFORMAT_H
++
++typedef enum {
++    VFORMAT_MPEG12 = 0,
++    VFORMAT_MPEG4,
++    VFORMAT_H264,
++    VFORMAT_MJPEG,
++    VFORMAT_REAL,
++    VFORMAT_JPEG,
++    VFORMAT_MAX
++} vformat_t;
++
++#endif /* VFORMAT_H */
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/imageformats.pro qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/imageformats.pro
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/imageformats.pro	2010-02-11 23:55:23.000000000 +0800
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/imageformats.pro	2010-08-04 14:00:32.297393000 +0800
+@@ -1,6 +1,6 @@
+ TEMPLATE = subdirs
+ 
+-!contains(QT_CONFIG, no-jpeg):SUBDIRS += jpeg
++!contains(QT_CONFIG, no-jpeg):SUBDIRS += jpeg_aml
+ !contains(QT_CONFIG, no-gif):SUBDIRS += gif
+ !contains(QT_CONFIG, no-mng):SUBDIRS += mng
+ contains(QT_CONFIG, svg):SUBDIRS += svg
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/hwjpegdec.cpp qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/hwjpegdec.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/hwjpegdec.cpp	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/hwjpegdec.cpp	2010-08-04 13:38:02.496892000 +0800
+@@ -0,0 +1,939 @@
++#include "hwjpegdec.h"
++#include "ge2d.h"
++#include "amstream.h"
++#include "vformat.h"
++#include "hwjpegdec.h"
++#include <unistd.h>
++#include <stdio.h>     
++#include <sys/ioctl.h>
++#include <fcntl.h>
++CHWJpegDec::CHWJpegDec()
++	:decoder_opt(0)
++{
++    int i = 0;
++    QString dev;
++#ifdef JPEG_DBG     
++    qCritical("last fd_amport is (%d).\n",fd_amport);
++	qCritical("------------HWJpegDec Init----------------\n");
++#endif    
++	cmemParm.type=CMEM_HEAP; cmemParm.flags=CMEM_NONCACHED; cmemParm.alignment=8;
++	planes[0] = planes[1]= planes[2]= planes[3]=NULL;
++	if(CMEM_init())
++    {
++#ifdef JPEG_DBG         
++		qCritical("hw jpeg init decoder error---cmem init error\n");
++#endif  		
++		return;	
++    }	
++    dev= QLatin1String(FILE_NAME_AMPORT);
++    fd_amport = open(dev.toLatin1().constData(), O_RDWR|O_NONBLOCK);
++	if(fd_amport<0) {
++#ifdef JPEG_DBG 	    
++		qCritical("hw jpeg init decoder error---amport access error\n");
++#endif		
++		return;
++	}
++	
++    //init amport for write device data.	
++    ioctl(fd_amport, AMSTREAM_IOC_VB_SIZE, 1024*1024);
++    ioctl(fd_amport, AMSTREAM_IOC_VFORMAT, VFORMAT_JPEG); 
++    ioctl(fd_amport, AMSTREAM_IOC_PORT_INIT);
++    dev= QLatin1String(FILE_NAME_JPEGDEC);
++    while(access(dev.toLatin1().constData(), R_OK|W_OK)){	 //waitting for device created.
++      	i ++;
++		usleep(1000);
++      	if(i>1000)
++      	{
++#ifdef JPEG_DBG       	    
++			qCritical("hw jpeg init decoder error---hw jpeg device access error\n");
++#endif			
++			return;
++      	}
++    }
++}
++
++CHWJpegDec::~CHWJpegDec()
++{
++	if(fd_amport>=0)
++	{
++		close(fd_amport);
++#ifdef JPEG_DBG 		
++		qCritical("fd_amport (%d) closed.\n",fd_amport);
++#endif		
++		fd_amport=-1;
++	}
++	CMEM_exit();    
++}
++
++bool CHWJpegDec::is_decoder_ok() {
++//	return (fd_amport<0)?false:true;
++    return true;
++}
++
++unsigned int  CHWJpegDec::ImgFormat2Ge2dFormat(QImage::Format img_format)
++{
++	unsigned int format=0xffffffff;
++	
++	 switch (img_format) {
++	/* 32 bpp */
++    	case QImage::Format_RGB32:
++    	case QImage::Format_ARGB32:
++    	case QImage::Format_ARGB32_Premultiplied:
++		format = GE2D_FORMAT_S32_ARGB;
++		break;
++	/* 24 bpp */
++	case QImage::Format_RGB888:
++	case QImage::Format_RGB666:
++		format = GE2D_FORMAT_S24_RGB;
++		break;
++	case QImage::Format_ARGB6666_Premultiplied:
++	case QImage::Format_ARGB8555_Premultiplied:
++		format = GE2D_FORMAT_S24_ARGB_6666;
++		break;
++	case QImage::Format_ARGB8565_Premultiplied:
++		format = GE2D_FORMAT_S24_ARGB_8565;
++		break;
++	/* 16 bpp */
++    	case QImage::Format_RGB16:
++		format = GE2D_FORMAT_S16_RGB_565;
++	    break;
++    	case QImage::Format_RGB555:
++		format = GE2D_FORMAT_S16_ARGB_1555;
++		break;
++	case QImage::Format_ARGB4444_Premultiplied:
++    	case QImage::Format_RGB444:
++		format = GE2D_FORMAT_S16_ARGB_4444;
++		break;
++	default:
++#ifdef JPEG_DBG 	
++    		qCritical("blit_32(): Image format %d not supported!", img_format);
++#endif    	
++        break;	
++    	}
++	 return format;
++
++}
++
++int CHWJpegDec::clear_plane(int index,jpegdec_config_t *config)
++{
++    QString   dev;
++	int fd_ge2d=-1;
++	config_para_t ge2d_config;
++    QImage::Format format;
++    ge2d_op_para_t op_para;
++    memset((char*)&ge2d_config,0,sizeof(config_para_t));
++    dev= QLatin1String(FILE_NAME_GE2D);
++    fd_ge2d= open(dev.toLatin1().constData(), O_RDWR);
++#ifdef JPEG_DBG     
++    qCritical("fd_ge2d= open(%s, O_RDWR)\n",dev.toLatin1().constData());
++#endif    
++	if(fd_ge2d<0)
++	{
++#ifdef JPEG_DBG 	    
++		qCritical("can't open framebuffer device" );  	
++#endif		
++		goto exit;
++	}
++    format = QImage::Format_RGB32;
++#ifdef JPEG_DBG 
++	qCritical("start clean plane buffer %d!!!!!\n", index);
++#endif	
++	ge2d_config.src_dst_type = ALLOC_ALLOC;
++
++//	qCritical("planes[3]addr : 0x%x-0x%x" ,planes[3],ge2d_config.dst_planes[0].addr);		
++    
++    switch(index){
++        case 0:
++        op_para.color=0x008080ff;
++        ge2d_config.src_format = GE2D_FORMAT_S8_Y;
++	    ge2d_config.dst_format = GE2D_FORMAT_S8_Y;
++    	ge2d_config.dst_planes[0].addr = config->addr_y;
++    	ge2d_config.dst_planes[0].w = config->canvas_width;
++    	ge2d_config.dst_planes[0].h = config->dec_h;     
++    	op_para.src1_rect.x = config->dec_x;
++    	op_para.src1_rect.y = config->dec_y;
++    	op_para.src1_rect.w = config->dec_w;
++    	op_para.src1_rect.h = config->dec_h;      	   
++    	op_para.dst_rect.x = config->dec_x;
++    	op_para.dst_rect.y = config->dec_y;
++    	op_para.dst_rect.w = config->dec_w;
++    	op_para.dst_rect.h = config->dec_h;        	
++        break;
++        case 1:
++        op_para.color=0x008080ff;
++        ge2d_config.src_format = GE2D_FORMAT_S8_CB;
++	    ge2d_config.dst_format = GE2D_FORMAT_S8_CB;
++    	ge2d_config.dst_planes[0].addr = config->addr_u;
++    	ge2d_config.dst_planes[0].w = config->canvas_width/2;
++    	ge2d_config.dst_planes[0].h = config->dec_h / 2;      
++    	op_para.src1_rect.x = config->dec_x/2;
++    	op_para.src1_rect.y = config->dec_y/2;
++    	op_para.src1_rect.w = config->dec_w/2;
++    	op_para.src1_rect.h = config->dec_h/2;       	
++    	op_para.dst_rect.x = config->dec_x/2;
++    	op_para.dst_rect.y = config->dec_y/2;
++    	op_para.dst_rect.w = config->dec_w/2;
++    	op_para.dst_rect.h = config->dec_h/2;        	
++        break;
++        case 2:
++        op_para.color=0x008080ff;
++        ge2d_config.src_format = GE2D_FORMAT_S8_CR;
++	    ge2d_config.dst_format = GE2D_FORMAT_S8_CR;    
++    	ge2d_config.dst_planes[0].addr = config->addr_v;
++    	ge2d_config.dst_planes[0].w = config->canvas_width/2;
++    	ge2d_config.dst_planes[0].h = config->dec_h / 2;
++    	op_para.src1_rect.x = config->dec_x/2;    
++    	op_para.src1_rect.y = config->dec_y/2;    
++    	op_para.src1_rect.w = config->dec_w/2;    
++    	op_para.src1_rect.h = config->dec_h/2;    
++    	op_para.dst_rect.x = config->dec_x/2;
++    	op_para.dst_rect.y = config->dec_y/2;
++    	op_para.dst_rect.w = config->dec_w/2;
++    	op_para.dst_rect.h = config->dec_h/2;        		    
++        break;
++        case 3:
++        op_para.color=0x000000ff;
++        ge2d_config.src_format = ImgFormat2Ge2dFormat(format);
++        ge2d_config.dst_format = ImgFormat2Ge2dFormat(format);
++    	ge2d_config.dst_planes[0].addr=CMEM_getPhys(planes[3]);
++    	ge2d_config.dst_planes[0].w= scale_w;
++    	ge2d_config.dst_planes[0].h = scale_h;    
++    	op_para.src1_rect.x = scale_x; 
++    	op_para.src1_rect.y = scale_y; 
++    	op_para.src1_rect.w = scale_w; 
++    	op_para.src1_rect.h = scale_h;       	
++    	op_para.dst_rect.x = scale_x;  
++    	op_para.dst_rect.y = scale_y;  
++    	op_para.dst_rect.w = scale_w;  
++    	op_para.dst_rect.h = scale_h;    	    
++        break;
++        default:
++        break;                            
++    }
++	ioctl(fd_ge2d, FBIOPUT_GE2D_CONFIG, &ge2d_config);
++   ioctl(fd_ge2d, FBIOPUT_GE2D_FILLRECTANGLE, &op_para);     
++exit:       
++	if(fd_ge2d >=0){
++	    close(fd_ge2d);		
++	    fd_ge2d = -1;
++    }     
++#ifdef JPEG_DBG       
++    qCritical("finish clean plane buffer %d!!!!!\n", index);
++#endif
++    return 0;
++}
++
++void CHWJpegDec::scaleSize(unsigned  &reqW, unsigned &reqH, int imgW, int imgH, Qt::AspectRatioMode mode)
++{
++    if (mode == Qt::IgnoreAspectRatio)
++        return;
++    int t1 = imgW * reqH;
++    int t2 = reqW * imgH;
++    if ((mode == Qt::KeepAspectRatio && (t1 > t2)) || (mode == Qt::KeepAspectRatioByExpanding && (t1 < t2)))
++        reqH = t2 / imgW;
++    else
++        reqW = t1 / imgH;
++}
++int CHWJpegDec::compute_keep_ratio(jpeg_data_t  *jpeg_data,jpegdec_config_t *config)
++{
++
++    int image_width , image_height;
++    int frame_left , frame_top ,frame_width, frame_height;
++    int target_width , target_height;
++    if(config->angle & 1){
++        image_width = jpeg_data->info.height ;
++        image_height = jpeg_data->info.width ;         
++    }else{
++        image_width = jpeg_data->info.width ;
++        image_height = jpeg_data->info.height;          
++    }
++    frame_left = scale_x;
++    frame_top =  scale_y;
++    frame_width = scale_w;
++    frame_height = scale_h ; 
++    
++    if((image_width * frame_height) > (image_height * frame_width)){
++/*according with width*/        
++        target_width = frame_width ;
++        target_height = (float)(image_height*frame_width)/image_width;       
++    }else{
++        target_height = frame_height ;
++        target_width = (float)(image_width*frame_height)/image_height;   
++    }
++    config->dec_x = 0 ; 
++    config->dec_y = 0;
++    config->dec_w = target_width ;
++    config->dec_h = target_height ;
++    if((image_width < frame_width)&&(image_height < frame_height)){        
++        config->dec_w = image_width ;
++        config->dec_h = image_height ;        
++    }
++    return 0;    
++}
++/**/
++int CHWJpegDec:: compute_keep_ratio_by_expanding(jpeg_data_t  *jpeg_data,jpegdec_config_t *config)
++{
++    int image_width , image_height;
++    int frame_left , frame_top ,frame_width, frame_height;
++    int target_width , target_height;
++    int w_limit ,h_limit;
++    if(config->angle & 1){
++        image_width = jpeg_data->info.height ;
++        image_height = jpeg_data->info.width ;         
++    }else{
++        image_width = jpeg_data->info.width ;
++        image_height = jpeg_data->info.height;          
++    }
++    frame_left = scale_x;
++    frame_top =  scale_y;
++    frame_width = scale_w;
++    frame_height = scale_h ; 
++    
++    if((frame_width * image_height) > (frame_height * image_width)){
++/*adjust height*/        
++        target_width = frame_width ;
++        target_height = (float)(image_height*frame_width)/image_width;       
++    }else{
++        target_height = frame_height ;
++        target_width = (float)(image_width*frame_height)/image_height;   
++    }    
++    
++    config->dec_x = 0 ; 
++    config->dec_y = 0;
++    config->dec_w = target_width ;
++    config->dec_h = target_height ;
++    if(config->angle & 1){
++        w_limit = 1920;
++        h_limit = 1920;   
++    }else{
++        w_limit = 1920;
++        h_limit = 1920;      
++    }
++    if((target_width > w_limit)||(target_height > h_limit)){ 
++#ifdef JPEG_DBG         
++        qCritical("crop area exceed %d*%d!!!!!\n", target_width, target_height);       
++#endif
++        return -1;       
++    }
++    if((image_width <= frame_width)&&(image_height <= frame_height)){        
++        config->dec_w = image_width ;
++        config->dec_h = image_height ;        
++    }else if((image_width < frame_width)||(image_height < frame_height)){
++#ifdef JPEG_DBG         
++        qCritical("crop function disable %d*%d!!!!!\n", image_width, image_height);       
++#endif        
++        return -1;    
++    }    
++    return 0;      
++}
++int CHWJpegDec::rebuild_jpg_config_para(jpeg_data_t  *jpeg_data,jpegdec_config_t *config)
++{
++	int ret = 0;
++	if((scale_w*jpeg_data->info.height)!= (scale_h*jpeg_data->info.width)){
++	    sMode =  Qt::IgnoreAspectRatio;   	        
++    }else{
++        sMode =  Qt::KeepAspectRatio;   	 
++    }
++#ifdef JPEG_DBG    
++    qCritical("current sMode is %d\n",sMode);	
++#endif    
++	switch(sMode){
++	    case Qt::KeepAspectRatio:
++	    ret = compute_keep_ratio(jpeg_data,config);
++	    break;
++	    case Qt::IgnoreAspectRatio:
++	    ret = compute_keep_ratio_by_expanding(jpeg_data,config);
++	    if(ret < 0){
++	        ret = compute_keep_ratio(jpeg_data,config);    
++	    }
++	    break;
++	    case Qt::KeepAspectRatioByExpanding:
++	    ret = compute_keep_ratio_by_expanding(jpeg_data,config);
++	    if(ret < 0){
++	        ret = compute_keep_ratio(jpeg_data,config);    
++	    }
++	    break;
++	    default:
++	    break;    
++	}  
++	if(config->dec_h<2) {
++		qCritical("too small to decode with hwjpeg decoder.\n");
++		return -1;
++	}	
++	config->canvas_width = CANVAS_ALIGNED(config->dec_w);	
++	planes[0] = (unsigned char *)CMEM_alloc(0, 
++				 config->canvas_width * config->dec_h, &cmemParm);
++	planes[1] = (unsigned char *)CMEM_alloc(0,
++				CANVAS_ALIGNED((config->canvas_width/2)) *config->dec_h/2, &cmemParm);
++	planes[2] = (unsigned char *)CMEM_alloc(0,
++				CANVAS_ALIGNED((config->canvas_width/2)) * config->dec_h/2, &cmemParm);
++	if ((!planes[0]) || (!planes[1]) || (!planes[2])) {
++		qCritical("Not enough memory\n");
++		if (planes[0])
++			CMEM_free(planes[0], &cmemParm);
++		if (planes[1])
++			CMEM_free(planes[1], &cmemParm);
++		if (planes[2])
++			CMEM_free(planes[2], &cmemParm);
++		return -1;
++	}
++	config->addr_y = CMEM_getPhys(planes[0]);
++	config->addr_u = CMEM_getPhys(planes[1]);
++	config->addr_v = CMEM_getPhys(planes[2]);
++	
++	if(config->dec_w==0 ||config->dec_h==0)
++	{
++		config->dec_w= jpeg_data->info.width;
++		config->dec_h= jpeg_data->info.height;
++	}
++//	scaleSize(config->dec_w, config->dec_h, jpeg_data->info.width, jpeg_data->info.height, (Qt::AspectRatioMode)config->opt);
++	config->opt = 0;
++	config->dec_x = 0;
++	config->dec_y = 0;
++	config->angle = CLKWISE_0;
++	clear_plane(0,config);
++	clear_plane(1,config);
++	clear_plane(2,config);
++	return 0;
++	
++}
++
++unsigned int  CHWJpegDec::get_decoder_state(int  handle)
++{
++	if(handle>0)
++	{
++		return ioctl(handle, JPEGDEC_IOC_STAT);
++	}
++	return JPEGDEC_STAT_ERROR;
++}
++
++/*********************************************************************
++**  function name:  read_jpeg_data
++**  para:
++**		device   		:	data source
++**		jpeg_data	:	jpeg info container which need to be filled by current func
++** 		op_max	 	: 	state machine quit mark.
++**		config		:	jpeg decoder config para 
++**	return value:  (int)
++**		0			:	fail
++**		others		:	machine state before quit.
++**
++***********************************************************************/
++int CHWJpegDec::read_jpeg_data(QIODevice *device,jpeg_data_t  *jpeg_data,int op_max,jpegdec_config_t *config)
++{
++    struct am_io_param vb_info;
++	int  read_num;
++	unsigned int decState;
++	int fd_jpegdec;
++	QString  dev ;
++	int fd_amport=jpeg_data->fd_amport;
++	
++	device->seek(0);  //seek device head .
++	if(jpeg_data->buffer==NULL||device==NULL||fd_amport<0) return 0;
++
++	dev= QLatin1String(FILE_NAME_JPEGDEC);
++   
++    fd_jpegdec= open(dev.toLatin1().constData(), O_RDWR);
++#ifdef JPEG_DBG     
++    qCritical("fd_jpegdec= open(%s, O_RDWR)\n",dev.toLatin1().constData()); 
++#endif
++    if(fd_jpegdec <0 ){
++        perror("open amjpec device error\r\n")	;
++        // 	  	qCritical("can't open jpeg relative device %s",qPrintable(dev));  	
++        return 0;
++    }	
++	int  op_step=DEC_STAT_INFOCONFIG ;
++	int  result=0;;
++	int  read_unit=HEADER_SIZE;
++	int total_size =0 ;
++	int file_read_end = 0;
++	QDateTime time1;
++	QDateTime time2;			
++	int wait_info_count  =0 ;
++	int wait_timeout = 0 ;
++    time1= QDateTime::currentDateTime();
++#ifdef JPEG_DBG     
++	qCritical("decoder start\n");
++#endif
++	while(op_step < op_max)
++	{
++		decState=get_decoder_state( fd_jpegdec);
++		result = decState;
++		if (decState & JPEGDEC_STAT_ERROR) {
++#ifdef JPEG_DBG 		    
++			qCritical("jpegdec error\n");
++#endif
++			break;
++		}
++
++		if (decState & JPEGDEC_STAT_UNSUPPORT) {
++#ifdef JPEG_DBG 		    
++			qCritical("jpegdec unsupported format\n");
++#endif			
++			break;
++		}
++
++		if (decState & JPEGDEC_STAT_DONE) {
++#ifdef JPEG_DBG 		    
++			qCritical("jpegdec done\n");
++#endif			
++			break;
++		}
++		ioctl(fd_amport, AMSTREAM_IOC_VB_STATUS,&vb_info);		
++		if((!file_read_end)&&(vb_info.status.data_len < ((4*vb_info.status.size)/5))&&(decState & JPEGDEC_STAT_WAIT_DATA)){
++			read_num=device->read(jpeg_data->buffer,read_unit );
++			total_size += read_num;
++			if(read_num<0)
++			{
++#ifdef JPEG_DBG 			    
++				qCritical("can't read data from jpeg device");  
++#endif				
++				result= 0;
++				break;
++			}
++			read_unit=MAX_BUFFER_SIZE;//expand buffer size to read real data.
++			if(read_num==0) //file end then fill padding data into buffer.
++			{
++			    file_read_end = 1;
++				read_num=read_unit=HEADER_SIZE;
++				memset(jpeg_data->buffer,0,read_unit);
++			}
++			write( fd_amport, jpeg_data->buffer, read_num); 
++			
++		}	
++		switch(op_step)
++		{
++			case DEC_STAT_INFOCONFIG:
++			ioctl( fd_jpegdec, JPEGDEC_IOC_INFOCONFIG, decoder_opt);
++			op_step=DEC_STAT_INFO;
++			break;
++			case DEC_STAT_INFO:
++			if (decState & JPEGDEC_STAT_INFO_READY) {
++				ioctl( fd_jpegdec, JPEGDEC_IOC_INFO, &jpeg_data->info);
++#ifdef JPEG_DBG 				
++				qCritical("++jpeg informations:w:%d,h:%d\r\n",jpeg_data->info.width,jpeg_data->info.height);
++#endif				
++				op_step=DEC_STAT_DECCONFIG;
++				
++			}else{
++			    wait_info_count++;
++			    if(wait_info_count > 5){
++			        wait_info_count = 0 ;
++			        time2= QDateTime::currentDateTime(); 
++			        wait_timeout = abs(time2.secsTo(time1));		
++#ifdef JPEG_DBG 			        	
++			        qCritical("current timeout is %d!!!\n",wait_timeout);	        		        
++#endif			        	        		        
++			    }
++			    if(wait_timeout > 3){
++			        op_step = op_max;  
++#ifdef JPEG_DBG 			        
++			        qCritical("timeout for get jpeg info!!!\n");
++#endif			        
++			        break;  			        
++			    }
++#ifdef JPEG_DBG 			    
++				qCritical("in jpeg decoding process\n");
++#endif				
++				result =0;
++			}
++			break;
++			case DEC_STAT_DECCONFIG:
++			if(config)
++			{
++				// first request mem from cmem.
++				if(rebuild_jpg_config_para(jpeg_data,config)<0)
++				{
++#ifdef JPEG_DBG 				    
++					qCritical("rebuild_cmem_config_para error");
++#endif					
++					op_step = op_max;
++					result=0;
++					continue;
++				}
++#ifdef JPEG_DBG 				
++				qCritical("sending jpeg decoding config (%d-%d-%d-%d), planes(0x%x, 0x%x, 0x%x).\n",
++					config->dec_x, config->dec_y, config->dec_w, config->dec_h,
++					config->addr_y, config->addr_u, config->addr_v);
++#endif	
++				if (ioctl(fd_jpegdec, JPEGDEC_IOC_DECCONFIG, config)<0) {
++#ifdef JPEG_DBG 				    
++					qCritical("decoder config failed\n");
++#endif					
++					op_step = op_max;
++					result =0;
++					continue;
++				}	
++				
++			}
++			op_step =DEC_STAT_RUN;
++			break;
++			default:
++			break;	
++		}
++	}
++#ifdef JPEG_DBG 	
++	qCritical("decoder exit\n");
++	qCritical("total read bytes is %d",total_size);  
++#endif
++	if( fd_jpegdec >0)
++	{
++		close(  fd_jpegdec);
++		fd_jpegdec=-1;
++	}
++	
++	return result;
++		
++}
++
++int CHWJpegDec::bytesPerPixel(QImage::Format format)
++{
++    switch (format) {
++    case QImage::Format_Invalid:
++        return 0;
++#ifndef QT_NO_DEBUG
++    case QImage::Format_Mono:
++    case QImage::Format_MonoLSB:
++        qFatal("QWSWindowSurface: Invalid backingstore format: %i",
++               int(format));
++#endif
++    case QImage::Format_Indexed8:
++        return 1;
++    case QImage::Format_RGB32:
++    case QImage::Format_ARGB32:
++    case QImage::Format_ARGB32_Premultiplied:
++        return 4;
++    case QImage::Format_RGB16:
++    case QImage::Format_RGB555:
++    case QImage::Format_RGB444:
++    case QImage::Format_ARGB4444_Premultiplied:
++        return 2;
++    case QImage::Format_ARGB8565_Premultiplied:
++    case QImage::Format_ARGB8555_Premultiplied:
++    case QImage::Format_ARGB6666_Premultiplied:
++    case QImage::Format_RGB666:
++    case QImage::Format_RGB888:
++        return 3;
++    default:
++#ifndef QT_NO_DEBUG
++        qFatal("QWSWindowSurface: Invalid backingstore format: %i",
++               int(format));
++#endif
++        return 0;
++    }
++}
++
++bool CHWJpegDec::read_jpeg_image(QIODevice *device, QImage *outImage,
++                            const QByteArray &parameters, QSize scaledSize,
++                            int inQuality)
++{
++	 int quality = inQuality;
++	 int result=true ;
++	 int sWidth = 0, sHeight = 0;
++	 char sModeStr[1024] = "";
++//       Qt::AspectRatioMode sMode;
++	 QString params = QString::fromLatin1(parameters);  	 
++	 
++#ifdef JPEG_DBG 
++	 qCritical("*****************scaledSize:%d:%d",scaledSize.width(),scaledSize.height());	
++#endif		 
++	 if (quality < 0)
++            quality = 75;	
++     params.simplified();
++        
++	if (params.contains(QLatin1String("Scale"))) {
++		sscanf(params.toLatin1().data(), "Scale(%i, %i, %1023s)",
++				   &sWidth, &sHeight, sModeStr);
++		 
++
++		QString sModeQStr(QString::fromLatin1(sModeStr));
++		if (sModeQStr == QLatin1String("IgnoreAspectRatio")) {
++			   sMode = Qt::IgnoreAspectRatio;
++		} else if (sModeQStr == QLatin1String("KeepAspectRatio")) {
++				sMode = Qt::KeepAspectRatio;
++		} else if (sModeQStr == QLatin1String("KeepAspectRatioByExpanding")) {
++			sMode = Qt::KeepAspectRatioByExpanding;
++		} else {
++#ifdef JPEG_DBG        	    
++			qDebug("read_jpeg_image: invalid aspect ratio mode \"%s\", see QImage::AspectRatioMode documentation", sModeStr);
++#endif           	
++			sMode = Qt::KeepAspectRatio;
++		}
++	
++	}else if (scaledSize.isValid()) {//if scale size if valid
++#ifdef JPEG_DBG 	    
++		qCritical("scaledSize.isValid()\n");
++#endif		
++		sWidth=scaledSize.width();
++		sHeight=scaledSize.height();		
++		sMode=Qt::IgnoreAspectRatio ;
++	}else{  //default process work
++#ifdef JPEG_DBG 	
++        qCritical("default process work\n");
++#endif        
++		sWidth = 0;
++		sHeight= 0;
++		sMode=Qt::IgnoreAspectRatio ;
++	}
++       
++	//we need some step to decompress jpeg image to output 
++	// 1  request yuv space from cmem to store decompressed data
++	// 2  config and decompress jpg picture.
++	// 3	 request  new rgb space from cmem to store output rgb data.
++	// 4  ge2d move yuv data to rgb space.
++	// 5  release request mem to cmem module.
++	jpegdec_config_t  config;
++	jpeg_data_t  jpeg_data;
++	    QString   dev;
++	int fd_ge2d=-1;
++	config_para_t ge2d_config;
++	QImage::Format format;
++    	ge2d_op_para_t op_para;
++	int bpl 	 ;
++	QImage  picImage;
++
++	memset((char*)&ge2d_config,0,sizeof(config_para_t));	
++	scale_x = 0;
++	scale_y = 0;
++	scale_w = sWidth;
++	scale_h = sHeight;	
++/*default value for no scaler input*/	
++#if 1
++	if(scale_w>0 && scale_w<=200 && scale_h>0 && scale_h<=200)  {
++		decoder_opt=JPEGDEC_OPT_THUMBNAIL_PREFERED;
++	} else {
++		decoder_opt=0;
++	}
++#else
++	decoder_opt=0;
++#endif
++	if((scale_w == 0)||(scale_h ==0)){
++	    scale_w  = 160 ;
++	    scale_h  = 100;     
++	}
++	config.opt=(unsigned)sMode ;
++	jpeg_data.fd_amport=fd_amport;
++	if(!(JPEGDEC_STAT_DONE&read_jpeg_data(device,&jpeg_data,DEC_STAT_MAX,&config)))
++	{
++#ifdef JPEG_DBG 	    
++		qCritical("can't decode jpg pic");	
++#endif			
++		result=false ;
++		goto exit;
++	}
++#ifdef JPEG_DBG 	
++	qCritical("deocde jpg pic completed");
++#endif
++	planes[3]=(unsigned char *)CMEM_alloc(0,CANVAS_ALIGNED(scale_w)*scale_h*4,&cmemParm);
++	if(!planes[3])
++	{
++#ifdef JPEG_DBG 	    
++		qCritical("can't get rgb memory from heap");
++#endif		
++		result=false ;
++		goto exit;
++	}
++#ifdef JPEG_DBG 	
++	qCritical("planes[3]=(unsigned char *)CMEM_alloc(0,%d * %d *4,&cmemParm)\n",scale_w ,scale_h); 
++#endif	
++ 	clear_plane(3,&config);
++
++	//open fb device to handle ge2d op FILE_NAME_GE2D
++    dev= QLatin1String(FILE_NAME_GE2D);
++    fd_ge2d= open(dev.toLatin1().constData(), O_RDWR);
++#ifdef JPEG_DBG     
++    qCritical("fd_ge2d= open(%s, O_RDWR)\n",dev.toLatin1().constData());
++#endif    
++	if(fd_ge2d<0)
++	{
++#ifdef JPEG_DBG 	    
++		qCritical("can't open framebuffer device" );  	
++#endif			
++	  	result =false;
++		goto exit;
++	}
++	if(jpeg_data.info.comp_num==3 ||jpeg_data.info.comp_num==4)
++	{
++		format = QImage::Format_RGB32;
++	}else if(jpeg_data.info.comp_num==1)
++	{
++		format = QImage::Format_Indexed8;
++	}else{
++#ifdef JPEG_DBG 	
++		qCritical("unsupported color format" );  	
++#endif		
++	  	result =false;
++		goto exit;
++	}
++#ifdef JPEG_DBG 	
++	qCritical("start ge2d image format convert!!!!!\n");
++#endif	
++	ge2d_config.src_dst_type = ALLOC_ALLOC;
++//    ge2d_config.src_dst_type = ALLOC_OSD1;        //only for test
++	ge2d_config.alu_const_color=0xff0000ff;
++	ge2d_config.src_format = GE2D_FORMAT_M24_YUV420;
++	ge2d_config.dst_format = ImgFormat2Ge2dFormat(format);
++	if(0xffffffff==ge2d_config.dst_format)
++	{
++#ifdef JPEG_DBG 	    
++		qCritical("can't get proper ge2d format" );  	
++#endif			
++	  	result =false;
++		goto exit;
++	}
++
++	ge2d_config.src_planes[0].addr = config.addr_y;
++	ge2d_config.src_planes[0].w =    config.canvas_width;
++	ge2d_config.src_planes[0].h =    config.dec_h;
++	ge2d_config.src_planes[1].addr = config.addr_u;
++	ge2d_config.src_planes[1].w =    config.canvas_width/2;
++	ge2d_config.src_planes[1].h =    config.dec_h / 2;
++
++	ge2d_config.src_planes[2].addr = config.addr_v;
++	ge2d_config.src_planes[2].w = config.canvas_width/2;
++	ge2d_config.src_planes[2].h = config.dec_h / 2;
++	ge2d_config.dst_planes[0].addr=CMEM_getPhys(planes[3]);	
++	ge2d_config.dst_planes[0].w=  scale_w;
++	ge2d_config.dst_planes[0].h = scale_h;
++#ifdef JPEG_DBG 	
++	qCritical("planes[3]addr : 0x%x-0x%x" ,planes[3],ge2d_config.dst_planes[0].addr);		
++#endif	
++	ioctl(fd_ge2d, FBIOPUT_GE2D_CONFIG, &ge2d_config);
++/*crop case*/	
++	if((config.dec_w > scale_w )||(config.dec_h > scale_h)){
++    	op_para.src1_rect.x = (config.dec_w - scale_w)>>1;
++    	op_para.src1_rect.y = (config.dec_h - scale_h)>>1;
++    	op_para.src1_rect.w = scale_w;
++    	op_para.src1_rect.h = scale_h;
++    	op_para.dst_rect.x = 0;
++    	op_para.dst_rect.y = 0;
++    	op_para.dst_rect.w = scale_w;
++    	op_para.dst_rect.h = scale_h;		    
++	}else{	
++    	op_para.src1_rect.x = config.dec_x;
++    	op_para.src1_rect.y = config.dec_y;
++    	op_para.src1_rect.w = config.dec_w;
++    	op_para.src1_rect.h = config.dec_h;
++    	op_para.dst_rect.x = (scale_w - config.dec_w )>>1;
++    	op_para.dst_rect.y = (scale_h - config.dec_h )>>1;
++    	op_para.dst_rect.w = config.dec_w;
++    	op_para.dst_rect.h = config.dec_h;
++    }
++#ifdef JPEG_DBG     
++   qCritical("srcx :%d  : srcy :%d srcw :%d srch :%d" ,op_para.src1_rect.x,op_para.src1_rect.y,op_para.src1_rect.w,op_para.src1_rect.h);	
++   qCritical("dstx :%d  : dsty :%d dstw :%d dsth :%d" ,op_para.dst_rect.x,op_para.dst_rect.y,op_para.dst_rect.w,op_para.dst_rect.h);	
++#endif
++    ioctl(fd_ge2d, FBIOPUT_GE2D_STRETCHBLIT_NOALPHA, &op_para); 
++    bpl = nextMulOf8(bytesPerPixel(format) *scale_w);
++	
++	picImage=QImage(planes[3],scale_w, scale_h, bpl,format);	
++	if(format==QImage::Format_Indexed8)
++	{
++		picImage.setNumColors(256);
++             for (int i = 0; i < 256; ++i)
++             picImage.setColor(i, qRgb(i,i,i));	
++	}
++	
++    *outImage=picImage.copy(QRect(1,1,0,0));
++#ifdef JPEG_DBG     
++    qCritical("outimage address is %x\n" ,(unsigned)outImage);  
++#endif    
++	if(planes[3])
++	{
++		CMEM_free(planes[3], &cmemParm);
++		planes[3] = NULL;
++#ifdef JPEG_DBG 		
++		qCritical("free planes[3]\n" );  
++#endif		
++	}
++    result= !outImage->isNull();
++exit:	
++	if (planes[0]){
++			CMEM_free(planes[0], &cmemParm);
++		planes[0] = NULL;
++#ifdef JPEG_DBG 
++		qCritical("free planes[0]\n" );  
++#endif		
++	}
++	if (planes[1]){
++			CMEM_free(planes[1], &cmemParm);
++		planes[1] = NULL;
++#ifdef JPEG_DBG 		
++		qCritical("free planes[1]\n" );  
++#endif		
++	}
++	if (planes[2]){	    
++			CMEM_free(planes[2], &cmemParm);
++		planes[2] = NULL;
++#ifdef JPEG_DBG 		
++		qCritical("free planes[2]\n" );  
++#endif		
++    }
++	if(planes[3]){
++		CMEM_free(planes[3], &cmemParm);
++		planes[3] = NULL;
++#ifdef JPEG_DBG 		
++		qCritical("free planes[3]\n" );  
++#endif			 
++	}	
++	if(fd_ge2d >=0){
++	    close(fd_ge2d);		
++	    fd_ge2d = -1;
++    }
++
++	return result;
++
++}
++
++bool CHWJpegDec::read_jpeg_size(QIODevice *device, int &w, int &h)
++{
++	jpeg_data_t  jpeg_data;
++	bool ret;
++
++	jpeg_data.fd_amport=fd_amport;
++
++	if(JPEGDEC_STAT_INFO_READY&read_jpeg_data(device,&jpeg_data,DEC_STAT_DECCONFIG,NULL))
++	{
++		w=jpeg_data.info.width;
++		h=jpeg_data.info.height;
++		ret= true;
++	}
++	else{
++		w=0,h=0;
++		ret= false;
++	}
++ 
++	return ret ;
++	
++}
++
++bool CHWJpegDec::read_jpeg_format(QIODevice *device, QImage::Format &format)
++{
++	bool result = false;
++	jpeg_data_t  jpeg_data;	
++
++	jpeg_data.fd_amport=fd_amport;
++      
++	if(JPEGDEC_STAT_INFO_READY&read_jpeg_data(device,&jpeg_data,DEC_STAT_DECCONFIG,NULL))
++	{
++		result = true;
++		switch (jpeg_data.info.comp_num) {
++		case 1:
++			format = QImage::Format_Indexed8;
++			break;
++		case 3:
++		case 4:
++			format = QImage::Format_RGB32;
++#ifdef JPEG_DBG 			
++			qCritical("jpeg format RGB32");	  
++#endif				
++			break;
++		default:
++			result = false;
++			break;
++		}
++	}
++	
++	return result;
++	
++}
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/hwjpegdec.h qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/hwjpegdec.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/hwjpegdec.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/hwjpegdec.h	2010-08-04 10:12:10.636732000 +0800
+@@ -0,0 +1,73 @@
++#ifndef CHWJPEGDEC_H
++#define CHWJPEGDEC_H
++
++#include <QtCore/QtCore>
++#include <QtCore/QSize>
++#include <qimage.h>
++
++#include "jpegdec.h"
++#include "cmem.h"
++//#define JPEG_DBG 
++#undef JPEG_DBG
++#define   FILE_NAME_AMPORT    "/dev/amstream_vbuf"
++#define   FILE_NAME_JPEGDEC	  "/dev/amjpegdec"
++#define   FILE_NAME_GE2D		  "/dev/ge2d"
++#define   MAX_BUFFER_SIZE		  (32*1024)
++#define   HEADER_SIZE				  (2048)	
++#define CANVAS_ALIGNED(x)	(((x) + 7) & ~7)
++
++enum {
++	DEC_STAT_INFOCONFIG=0,
++	DEC_STAT_INFO,
++	DEC_STAT_DECCONFIG,
++	DEC_STAT_RUN,
++	DEC_STAT_MAX
++};
++
++typedef  struct{
++ int  fd_amport;
++ jpegdec_info_t info;
++ char buffer[MAX_BUFFER_SIZE];
++
++}jpeg_data_t;
++
++class CHWJpegDec
++{
++public:
++    CHWJpegDec();
++	~CHWJpegDec();
++	bool read_jpeg_image(QIODevice *device, QImage *outImage,
++                            const QByteArray &parameters, QSize scaledSize,
++                            int inQuality);
++	bool read_jpeg_size(QIODevice *device, int &w, int &h);
++	bool read_jpeg_format(QIODevice *device, QImage::Format &format);
++	bool is_decoder_ok();
++	
++private:
++	int  fd_amport;
++	int scale_x;
++	int scale_y;
++	int scale_w;
++	int scale_h;	
++	CMEM_AllocParams cmemParm;
++	unsigned char *planes[4];
++	unsigned decoder_opt;
++	Qt::AspectRatioMode sMode;
++	//to get a valid image for jpeg.
++	inline int nextMulOf8(int n)
++	{
++		return ((n + 7) & 0xfffffff8);
++	}
++	
++	unsigned int  ImgFormat2Ge2dFormat(QImage::Format img_format);
++	int clear_plane(int index,jpegdec_config_t *config);
++	void scaleSize(unsigned  &reqW, unsigned &reqH, int imgW, int imgH, Qt::AspectRatioMode mode);
++	int rebuild_jpg_config_para(jpeg_data_t  *jpeg_data,jpegdec_config_t *config);
++	unsigned int  get_decoder_state(int  handle);
++	int read_jpeg_data(QIODevice *device,jpeg_data_t  *jpeg_data,int op_max,jpegdec_config_t *config);
++	int bytesPerPixel(QImage::Format format);
++	int compute_keep_ratio(jpeg_data_t  *jpeg_data,jpegdec_config_t *config);
++	int compute_keep_ratio_by_expanding(jpeg_data_t  *jpeg_data,jpegdec_config_t *config);
++};
++
++#endif // CHWJPEGDEC_H
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/jpeg_aml.pro qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/jpeg_aml.pro
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/jpeg_aml.pro	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/jpeg_aml.pro	2010-08-04 13:37:29.420644000 +0800
+@@ -0,0 +1,76 @@
++TARGET = qjpeg
++include(../../qpluginbase.pri)
++QTDIR_build:REQUIRES = "!contains(QT_CONFIG, no-jpeg)"
++LIBS += $(STAGING)/lib/libcmem.a
++INCPATH += $(STAGING)/include/
++INCPATH += $$QT_SOURCE_TREE/src/3rdparty/libaml
++HEADERS += qjpeghandler.h \
++    hwjpegdec.h \
++	swjpegdec.h
++SOURCES += main.cpp \
++    qjpeghandler.cpp \
++    hwjpegdec.cpp \
++	swjpegdec.cpp
++	
++wince*: { 
++    DEFINES += NO_GETENV
++    contains(CE_ARCH,x86):CONFIG -= stl \
++        exceptions
++    contains(CE_ARCH,x86):CONFIG += exceptions_off
++}
++contains(QT_CONFIG, system-jpeg) { 
++    unix:LIBS += -ljpeg
++    win32:LIBS += libjpeg.lib
++}
++!contains(QT_CONFIG, system-jpeg) { 
++    INCLUDEPATH += ../../../3rdparty/libjpeg
++    SOURCES += ../../../3rdparty/libjpeg/jcapimin.c \
++        ../../../3rdparty/libjpeg/jcapistd.c \
++        ../../../3rdparty/libjpeg/jccoefct.c \
++        ../../../3rdparty/libjpeg/jccolor.c \
++        ../../../3rdparty/libjpeg/jcdctmgr.c \
++        ../../../3rdparty/libjpeg/jchuff.c \
++        ../../../3rdparty/libjpeg/jcinit.c \
++        ../../../3rdparty/libjpeg/jcmainct.c \
++        ../../../3rdparty/libjpeg/jcmarker.c \
++        ../../../3rdparty/libjpeg/jcmaster.c \
++        ../../../3rdparty/libjpeg/jcomapi.c \
++        ../../../3rdparty/libjpeg/jcparam.c \
++        ../../../3rdparty/libjpeg/jcphuff.c \
++        ../../../3rdparty/libjpeg/jcprepct.c \
++        ../../../3rdparty/libjpeg/jcsample.c \
++        ../../../3rdparty/libjpeg/jctrans.c \
++        ../../../3rdparty/libjpeg/jdapimin.c \
++        ../../../3rdparty/libjpeg/jdapistd.c \
++        ../../../3rdparty/libjpeg/jdatadst.c \
++        ../../../3rdparty/libjpeg/jdatasrc.c \
++        ../../../3rdparty/libjpeg/jdcoefct.c \
++        ../../../3rdparty/libjpeg/jdcolor.c \
++        ../../../3rdparty/libjpeg/jddctmgr.c \
++        ../../../3rdparty/libjpeg/jdhuff.c \
++        ../../../3rdparty/libjpeg/jdinput.c \
++        ../../../3rdparty/libjpeg/jdmainct.c \
++        ../../../3rdparty/libjpeg/jdmarker.c \
++        ../../../3rdparty/libjpeg/jdmaster.c \
++        ../../../3rdparty/libjpeg/jdmerge.c \
++        ../../../3rdparty/libjpeg/jdphuff.c \
++        ../../../3rdparty/libjpeg/jdpostct.c \
++        ../../../3rdparty/libjpeg/jdsample.c \
++        ../../../3rdparty/libjpeg/jdtrans.c \
++        ../../../3rdparty/libjpeg/jerror.c \
++        ../../../3rdparty/libjpeg/jfdctflt.c \
++        ../../../3rdparty/libjpeg/jfdctfst.c \
++        ../../../3rdparty/libjpeg/jfdctint.c \
++        ../../../3rdparty/libjpeg/jidctflt.c \
++        ../../../3rdparty/libjpeg/jidctfst.c \
++        ../../../3rdparty/libjpeg/jidctint.c \
++        ../../../3rdparty/libjpeg/jidctred.c \
++        ../../../3rdparty/libjpeg/jmemmgr.c \
++        ../../../3rdparty/libjpeg/jquant1.c \
++        ../../../3rdparty/libjpeg/jquant2.c \
++        ../../../3rdparty/libjpeg/jutils.c \
++        ../../../3rdparty/libjpeg/jmemnobs.c
++}
++QTDIR_build:DESTDIR = $$QT_BUILD_TREE/plugins/imageformats
++target.path += $$[QT_INSTALL_PLUGINS]/imageformats
++INSTALLS += target
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/main.cpp qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/main.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/main.cpp	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/main.cpp	2010-06-29 14:11:29.865356000 +0800
+@@ -0,0 +1,97 @@
++/****************************************************************************
++**
++** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
++** Contact: Nokia Corporation (qt-info@nokia.com)
++**
++** This file is part of the plugins of the Qt Toolkit.
++**
++** $QT_BEGIN_LICENSE:LGPL$
++** Commercial Usage
++** Licensees holding valid Qt Commercial licenses may use this file in
++** accordance with the Qt Commercial License Agreement provided with the
++** Software or, alternatively, in accordance with the terms contained in
++** a written agreement between you and Nokia.
++**
++** GNU Lesser General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU Lesser
++** General Public License version 2.1 as published by the Free Software
++** Foundation and appearing in the file LICENSE.LGPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU Lesser General Public License version 2.1 requirements
++** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
++**
++** In addition, as a special exception, Nokia gives you certain
++** additional rights. These rights are described in the Nokia Qt LGPL
++** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
++** package.
++**
++** GNU General Public License Usage
++** Alternatively, this file may be used under the terms of the GNU
++** General Public License version 3.0 as published by the Free Software
++** Foundation and appearing in the file LICENSE.GPL included in the
++** packaging of this file.  Please review the following information to
++** ensure the GNU General Public License version 3.0 requirements will be
++** met: http://www.gnu.org/copyleft/gpl.html.
++**
++** If you are unsure which license is appropriate for your use, please
++** contact the sales department at http://www.qtsoftware.com/contact.
++** $QT_END_LICENSE$
++**
++****************************************************************************/
++
++#include <qimageiohandler.h>
++#include <qstringlist.h>
++
++#ifndef QT_NO_IMAGEFORMATPLUGIN
++
++#ifdef QT_NO_IMAGEFORMAT_JPEG
++#undef QT_NO_IMAGEFORMAT_JPEG
++#endif
++#include "qjpeghandler.h"
++
++QT_BEGIN_NAMESPACE
++
++class QJpegPlugin : public QImageIOPlugin
++{
++public:
++    QStringList keys() const;
++    Capabilities capabilities(QIODevice *device, const QByteArray &format) const;
++    QImageIOHandler *create(QIODevice *device, const QByteArray &format = QByteArray()) const;
++};
++
++QStringList QJpegPlugin::keys() const
++{
++    return QStringList() << QLatin1String("jpeg") << QLatin1String("jpg");
++}
++
++QImageIOPlugin::Capabilities QJpegPlugin::capabilities(QIODevice *device, const QByteArray &format) const
++{
++    if (format == "jpeg" || format == "jpg")
++        return Capabilities(CanRead | CanWrite);
++    if (!format.isEmpty())
++        return 0;
++    if (!device->isOpen())
++        return 0;
++
++    Capabilities cap;
++    if (device->isReadable() && QJpegHandler::canRead(device))
++        cap |= CanRead;
++    if (device->isWritable())
++        cap |= CanWrite;
++    return cap;
++}
++
++QImageIOHandler *QJpegPlugin::create(QIODevice *device, const QByteArray &format) const
++{
++    QImageIOHandler *handler = new QJpegHandler;
++    handler->setDevice(device);
++    handler->setFormat(format);
++    return handler;
++}
++
++Q_EXPORT_STATIC_PLUGIN(QJpegPlugin)
++Q_EXPORT_PLUGIN2(qjpeg, QJpegPlugin)
++
++QT_END_NAMESPACE
++
++#endif // QT_NO_IMAGEFORMATPLUGIN
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/qjpeghandler.cpp qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/qjpeghandler.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/qjpeghandler.cpp	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/qjpeghandler.cpp	2010-07-09 14:17:21.828856000 +0800
+@@ -0,0 +1,154 @@
++/*****************************************************************************
++**
++** Copyright (C) 2010 AMLOGIC, INC.
++** All rights reserved.
++****************************************************************************/
++
++#include "qjpeghandler.h"
++
++#include <qvariant.h>
++#include <qvector.h>
++
++#include "swjpegdec.h"
++
++QT_BEGIN_NAMESPACE
++				
++QJpegHandler::QJpegHandler()
++{
++    hw_jpeg_dec = new CHWJpegDec ;
++    quality = 75;
++	dec_mode=JpegModeHW;
++#ifdef JPEG_DBG 	
++	qCritical("~QJpegHandler: Init\n");
++#endif	
++	if(hw_jpeg_dec->is_decoder_ok()==false)  {
++		dec_mode=JpegModeJpegLIb;
++	}
++}
++
++QJpegHandler::~QJpegHandler()
++{
++    delete hw_jpeg_dec;
++#ifdef JPEG_DBG     
++	qCritical("~QJpegHandler: release\n");
++#endif	
++}
++
++bool QJpegHandler::canRead() const
++{
++    if (canRead(device())) {
++        setFormat("jpeg");
++        return true;
++    }
++    return false;
++}
++
++bool QJpegHandler::canRead(QIODevice *device)
++{
++    if (!device) {
++        qWarning("QJpegHandler::canRead() called with no device");
++        return false;
++    }
++
++    return device->peek(2) == "\xFF\xD8";
++}
++
++bool QJpegHandler::read(QImage *image)
++{
++	int ret;
++	qint64 pos;	
++	if (!canRead()){
++#ifdef JPEG_DBG 	    
++		qCritical("can't read\n");
++#endif		
++		return false;
++	}
++	if(dec_mode==JpegModeHW) {
++		pos = device()->pos();
++#ifdef JPEG_DBG 		
++		qCritical("start read using hardware jpeg !!!!\n");
++#endif		
++		mutex.lock();
++		ret=hw_jpeg_dec->read_jpeg_image(device(), image, parameters, scaledSize, quality);
++		mutex.unlock();
++		if(ret==false) dec_mode=JpegModeJpegLIb; 
++	} 
++	if(dec_mode==JpegModeJpegLIb) {
++		device()->seek(pos);
++#ifdef JPEG_DBG 		
++		qCritical("start read using software jpeg!!!!\n");
++#endif		
++		ret =  lib_read_jpeg_image(device(), image, parameters, scaledSize, quality);
++	}
++	
++	return ret;
++}
++
++bool QJpegHandler::write(const QImage &image)
++{
++    return lib_write_jpeg_image(image, device(), quality);
++}
++
++bool QJpegHandler::supportsOption(ImageOption option) const
++{
++    return option == Quality
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++        || option == ScaledSize
++#endif
++        || option == Size
++        || option == ImageFormat;
++}
++
++QVariant QJpegHandler::option(ImageOption option) const
++{
++	int ret;
++    if (option == Quality) {
++        return quality;
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++    } else if  (option == ScaledSize) {
++        return scaledSize;
++#endif
++    } else if (option == Size) {
++        if (canRead() && !device()->isSequential()) {
++            qint64 pos = device()->pos();
++            int width = 0;
++            int height = 0;
++			lib_read_jpeg_size(device(), width, height);
++#ifdef JPEG_DBG 			
++			qCritical("width is %d , height is %d \n",width , height);
++#endif				  
++			device()->seek(pos);
++			return QSize(width, height);
++        }
++    } else if (option == ImageFormat) {
++        if (canRead() && !device()->isSequential()) {
++            qint64 pos = device()->pos();
++            QImage::Format format = QImage::Format_Invalid;
++			lib_read_jpeg_format(device(), format);
++#ifdef JPEG_DBG 					
++			qCritical("format is %d \n",format);  
++#endif				
++            device()->seek(pos);
++            return format;
++        }
++        return QImage::Format_Invalid;
++    }
++    return QVariant();
++}
++
++void QJpegHandler::setOption(ImageOption option, const QVariant &value)
++{
++    if (option == Quality)
++        quality = value.toInt();
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++    else if ( option == ScaledSize )
++        scaledSize = value.toSize();
++#endif
++}
++
++QByteArray QJpegHandler::name() const
++{
++    return "jpeg";
++}
++
++QT_END_NAMESPACE
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/qjpeghandler.h qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/qjpeghandler.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/qjpeghandler.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/qjpeghandler.h	2010-07-08 20:30:12.343750000 +0800
+@@ -0,0 +1,57 @@
++/****************************************************************************
++**
++** Copyright (C) 2010 AMLOGIC, INC.
++** All rights reserved.
++****************************************************************************/
++
++#ifndef QJPEGHANDLER_H
++#define QJPEGHANDLER_H
++
++#include <QtGui/qimageiohandler.h>
++#include <QtCore/QSize>
++#include <QtCore/QtCore>
++#include <qimage.h>
++
++#include "jpegdec.h"
++#include "hwjpegdec.h"
++
++QT_BEGIN_NAMESPACE
++	
++class QJpegHandler : public QImageIOHandler
++{
++	enum JpegDecoderMode{
++		JpegModeHW,
++		JpegModeJpegLIb
++	};
++public:
++    QJpegHandler();
++    ~QJpegHandler();
++
++    bool canRead() const;
++    bool read(QImage *image);
++    bool write(const QImage &image);
++
++    QByteArray name() const;
++
++    static bool canRead(QIODevice *device);
++
++    QVariant option(ImageOption option) const;
++    void setOption(ImageOption option, const QVariant &value);
++    bool supportsOption(ImageOption option) const;
++   	
++
++private:
++	int quality;
++	QByteArray parameters;
++	QSize scaledSize;	
++	/* for hardware jpeg dec.*/
++	CHWJpegDec* hw_jpeg_dec;
++	QMutex  mutex;
++	
++	/* for choice. */
++	JpegDecoderMode dec_mode;
++};
++
++QT_END_NAMESPACE
++
++#endif // QJPEGHANDLER_H
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/swjpegdec.cpp qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/swjpegdec.cpp
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/swjpegdec.cpp	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/swjpegdec.cpp	2010-07-09 15:01:16.733356000 +0800
+@@ -0,0 +1,1146 @@
++/*****************************************************************************
++*
++* for jpeglib decoder.
++*
++****************************************************************************/
++#include <qimage.h>
++#include <qvariant.h>
++#include <qvector.h>
++
++#include <stdio.h>      // jpeglib needs this to be pre-included
++#include <setjmp.h>
++
++#ifdef FAR
++#undef FAR
++#endif
++
++// hw: optimize smoothscaler for returning 24-bit images
++
++// including jpeglib.h seems to be a little messy
++extern "C" {
++// mingw includes rpcndr.h but does not define boolean
++#if defined(Q_OS_WIN) && defined(Q_CC_GNU)
++#   if defined(__RPCNDR_H__) && !defined(boolean)
++        typedef unsigned char boolean;
++#       define HAVE_BOOLEAN
++#   endif
++#endif
++
++#define XMD_H           // shut JPEGlib up
++#if defined(Q_OS_UNIXWARE)
++#  define HAVE_BOOLEAN  // libjpeg under Unixware seems to need this
++#endif
++#include <jpeglib.h>
++#ifdef const
++#  undef const          // remove crazy C hackery in jconfig.h
++#endif
++}
++
++QT_BEGIN_NAMESPACE
++
++//#define QT_NO_IMAGE_SMOOTHSCALE
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++class QImageSmoothScalerPrivate;
++class QImageSmoothScaler
++{
++public:
++    QImageSmoothScaler(const int w, const int h, const QImage &src);
++    QImageSmoothScaler(const int srcWidth, const int srcHeight,
++                       const char *parameters);
++
++    virtual ~QImageSmoothScaler(void);
++
++    QImage  scale();
++
++protected:
++    int scaledWidth(void) const;
++
++private:
++    QImageSmoothScalerPrivate	*d;
++    virtual QRgb *scanLine(const int line = 0, const QImage *src = 0);
++};
++
++class QImageSmoothScalerPrivate
++{
++public:
++    int	    cols;
++    int	    newcols;
++    int	    rows;
++    int	    newrows;
++    bool    hasAlpha;
++
++    const QImage  *src;
++
++    void setup(const int srcWidth, const int srcHeight, const int dstWidth,
++               const int dstHeight, bool hasAlphaChannel);
++};
++
++QImageSmoothScaler::QImageSmoothScaler(const int w, const int h,
++                                       const QImage &src)
++{
++    d = new QImageSmoothScalerPrivate;
++
++    d->setup(src.width(), src.height(), w, h, src.hasAlphaChannel() );
++    this->d->src = &src;
++}
++
++QImageSmoothScaler::QImageSmoothScaler(const int srcWidth, const int srcHeight,
++                                       const char *parameters)
++{
++    char    sModeStr[1024];
++    int	    t1;
++    int	    t2;
++    int	    dstWidth;
++    int	    dstHeight;
++
++    sModeStr[0] = '\0';
++
++    d = new QImageSmoothScalerPrivate;
++#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE) && defined(_MSC_VER) && _MSC_VER >= 1400
++    sscanf_s(parameters, "Scale( %i, %i, %1023s )", &dstWidth, &dstHeight, sModeStr, sizeof(sModeStr));
++#else
++    sscanf(parameters, "Scale( %i, %i, %s )", &dstWidth, &dstHeight, sModeStr);
++#endif
++    QString sModeQStr = QString::fromLatin1(sModeStr);
++
++    t1 = srcWidth * dstHeight;
++    t2 = srcHeight * dstWidth;
++
++    if (((sModeQStr == QLatin1String("ScaleMin")) && (t1 > t2)) || ((sModeQStr == QLatin1String("ScaleMax")) && (t2 < t2))) {
++	dstHeight = t2 / srcWidth;
++    } else if (sModeQStr != QLatin1String("ScaleFree")) {
++	dstWidth = t1 / srcHeight;
++    }
++
++    d->setup(srcWidth, srcHeight, dstWidth, dstHeight, 0);
++}
++
++void QImageSmoothScalerPrivate::setup(const int srcWidth, const int srcHeight,
++                                      const int dstWidth, const int dstHeight,
++                                      bool hasAlphaChannel)
++{
++    cols = srcWidth;
++    rows = srcHeight;
++    newcols = dstWidth;
++    newrows = dstHeight;
++    hasAlpha = hasAlphaChannel;
++}
++
++int QImageSmoothScaler::scaledWidth() const
++{
++    return d->cols;
++}
++
++QImageSmoothScaler::~QImageSmoothScaler()
++{
++    delete d;
++}
++
++inline QRgb *QImageSmoothScaler::scanLine(const int line, const QImage *src)
++{
++    return (QRgb*)src->scanLine(line);
++}
++
++/*
++  This function uses code based on pnmscale.c by Jef Poskanzer.
++
++  pnmscale.c - read a portable anymap and scale it
++
++  Copyright (C) 1989, 1991 by Jef Poskanzer.
++
++  Permission to use, copy, modify, and distribute this software and its
++  documentation for any purpose and without fee is hereby granted, provided
++  that the above copyright notice appear in all copies and that both that
++  copyright notice and this permission notice appear in supporting
++  documentation.  This software is provided "as is" without express or
++  implied warranty.
++*/
++
++QImage QImageSmoothScaler::scale()
++{
++    long    SCALE;
++    long    HALFSCALE;
++    QRgb    *xelrow = 0;
++    QRgb    *tempxelrow = 0;
++    QRgb    *xP;
++    QRgb    *nxP;
++    int	    row, rowsread;
++    int	    col, needtoreadrow;
++    uchar   maxval = 255;
++    qreal  xscale, yscale;
++    long    sxscale, syscale;
++    long    fracrowtofill, fracrowleft;
++    long    *as;
++    long    *rs;
++    long    *gs;
++    long    *bs;
++    int	    rowswritten = 0;
++    QImage  dst;
++
++    if (d->cols > 4096) {
++	SCALE = 4096;
++	HALFSCALE = 2048;
++    } else {
++	int fac = 4096;
++	while (d->cols * fac > 4096) {
++	    fac /= 2;
++	}
++
++	SCALE = fac * d->cols;
++	HALFSCALE = fac * d->cols / 2;
++    }
++
++    xscale = (qreal) d->newcols / (qreal) d->cols;
++    yscale = (qreal) d->newrows / (qreal) d->rows;
++    sxscale = (long)(xscale * SCALE);
++    syscale = (long)(yscale * SCALE);
++
++    if ( d->newrows != d->rows )	/* shortcut Y scaling if possible */
++	tempxelrow = new QRgb[d->cols];
++
++    if ( d->hasAlpha ) {
++	as = new long[d->cols];
++	for ( col = 0; col < d->cols; ++col )
++	    as[col] = HALFSCALE;
++    } else {
++	as = 0;
++    }
++    rs = new long[d->cols];
++    gs = new long[d->cols];
++    bs = new long[d->cols];
++    rowsread = 0;
++    fracrowleft = syscale;
++    needtoreadrow = 1;
++    for ( col = 0; col < d->cols; ++col )
++	rs[col] = gs[col] = bs[col] = HALFSCALE;
++    fracrowtofill = SCALE;
++#ifdef JPEG_DBG     
++    qCritical("internal scale ,create image:%d:%d",d->newcols,d->newrows);
++#endif    
++    dst = QImage( d->newcols, d->newrows, d->hasAlpha ? QImage::Format_ARGB32 : QImage::Format_RGB32 );
++#ifdef JPEG_DBG     
++   	qCritical("internal scale ,new bpl is :%d",dst.bytesPerLine());
++#endif   	
++    for ( row = 0; row < d->newrows; ++row ) {
++	/* First scale Y from xelrow into tempxelrow. */
++	if ( d->newrows == d->rows ) {
++	    /* shortcut Y scaling if possible */
++	    tempxelrow = xelrow = scanLine(rowsread++, d->src);
++	} else {
++	    while ( fracrowleft < fracrowtofill ) {
++		if ( needtoreadrow && rowsread < d->rows ) {
++		    xelrow = scanLine(rowsread++, d->src);
++		}
++		for ( col = 0, xP = xelrow; col < d->cols; ++col, ++xP ) {
++		    if (as) {
++			as[col] += fracrowleft * qAlpha( *xP );
++			rs[col] += fracrowleft * qRed( *xP ) * qAlpha( *xP ) / 255;
++			gs[col] += fracrowleft * qGreen( *xP ) * qAlpha( *xP ) / 255;
++			bs[col] += fracrowleft * qBlue( *xP ) * qAlpha( *xP ) / 255;
++		    } else {
++			rs[col] += fracrowleft * qRed( *xP );
++			gs[col] += fracrowleft * qGreen( *xP );
++			bs[col] += fracrowleft * qBlue( *xP );
++		    }
++		}
++		fracrowtofill -= fracrowleft;
++		fracrowleft = syscale;
++		needtoreadrow = 1;
++	    }
++	    /* Now fracrowleft is >= fracrowtofill, so we can produce a row. */
++	    if ( needtoreadrow && rowsread < d->rows) {
++		xelrow = scanLine(rowsread++, d->src);
++		needtoreadrow = 0;
++	    }
++	    for ( col = 0, xP = xelrow, nxP = tempxelrow;
++		  col < d->cols; ++col, ++xP, ++nxP )
++	    {
++		register long a, r, g, b;
++
++		if ( as ) {
++		    r = rs[col] + fracrowtofill * qRed( *xP ) * qAlpha( *xP ) / 255;
++		    g = gs[col] + fracrowtofill * qGreen( *xP ) * qAlpha( *xP ) / 255;
++		    b = bs[col] + fracrowtofill * qBlue( *xP ) * qAlpha( *xP ) / 255;
++		    a = as[col] + fracrowtofill * qAlpha( *xP );
++		    if ( a ) {
++			r = r * 255 / a * SCALE;
++			g = g * 255 / a * SCALE;
++			b = b * 255 / a * SCALE;
++		    }
++		} else {
++		    r = rs[col] + fracrowtofill * qRed( *xP );
++		    g = gs[col] + fracrowtofill * qGreen( *xP );
++		    b = bs[col] + fracrowtofill * qBlue( *xP );
++		    a = 0; // unwarn
++		}
++		r /= SCALE;
++		if ( r > maxval ) r = maxval;
++		g /= SCALE;
++		if ( g > maxval ) g = maxval;
++		b /= SCALE;
++		if ( b > maxval ) b = maxval;
++		if ( as ) {
++		    a /= SCALE;
++		    if ( a > maxval ) a = maxval;
++		    *nxP = qRgba( (int)r, (int)g, (int)b, (int)a );
++		    as[col] = HALFSCALE;
++		} else {
++		    *nxP = qRgb( (int)r, (int)g, (int)b );
++		}
++		rs[col] = gs[col] = bs[col] = HALFSCALE;
++	    }
++	    fracrowleft -= fracrowtofill;
++	    if ( fracrowleft == 0 ) {
++		fracrowleft = syscale;
++		needtoreadrow = 1;
++	    }
++	    fracrowtofill = SCALE;
++	}
++
++	/* Now scale X from tempxelrow into dst and write it out. */
++	if ( d->newcols == d->cols ) {
++	    /* shortcut X scaling if possible */
++	    memcpy(dst.scanLine(rowswritten++), tempxelrow, d->newcols*4);
++	} else {
++	    register long a, r, g, b;
++	    register long fraccoltofill, fraccolleft = 0;
++	    register int needcol;
++
++	    nxP = (QRgb*)dst.scanLine(rowswritten++);
++	    fraccoltofill = SCALE;
++	    a = r = g = b = HALFSCALE;
++	    needcol = 0;
++	    for ( col = 0, xP = tempxelrow; col < d->cols; ++col, ++xP ) {
++		fraccolleft = sxscale;
++		while ( fraccolleft >= fraccoltofill ) {
++		    if ( needcol ) {
++			++nxP;
++			a = r = g = b = HALFSCALE;
++		    }
++		    if ( as ) {
++			r += fraccoltofill * qRed( *xP ) * qAlpha( *xP ) / 255;
++			g += fraccoltofill * qGreen( *xP ) * qAlpha( *xP ) / 255;
++			b += fraccoltofill * qBlue( *xP ) * qAlpha( *xP ) / 255;
++			a += fraccoltofill * qAlpha( *xP );
++			if ( a ) {
++			    r = r * 255 / a * SCALE;
++			    g = g * 255 / a * SCALE;
++			    b = b * 255 / a * SCALE;
++			}
++		    } else {
++			r += fraccoltofill * qRed( *xP );
++			g += fraccoltofill * qGreen( *xP );
++			b += fraccoltofill * qBlue( *xP );
++		    }
++		    r /= SCALE;
++		    if ( r > maxval ) r = maxval;
++		    g /= SCALE;
++		    if ( g > maxval ) g = maxval;
++		    b /= SCALE;
++		    if ( b > maxval ) b = maxval;
++		    if (as) {
++			a /= SCALE;
++			if ( a > maxval ) a = maxval;
++			*nxP = qRgba( (int)r, (int)g, (int)b, (int)a );
++		    } else {
++			*nxP = qRgb( (int)r, (int)g, (int)b );
++		    }
++		    fraccolleft -= fraccoltofill;
++		    fraccoltofill = SCALE;
++		    needcol = 1;
++		}
++		if ( fraccolleft > 0 ) {
++		    if ( needcol ) {
++			++nxP;
++			a = r = g = b = HALFSCALE;
++			needcol = 0;
++		    }
++		    if (as) {
++			a += fraccolleft * qAlpha( *xP );
++			r += fraccolleft * qRed( *xP ) * qAlpha( *xP ) / 255;
++			g += fraccolleft * qGreen( *xP ) * qAlpha( *xP ) / 255;
++			b += fraccolleft * qBlue( *xP ) * qAlpha( *xP ) / 255;
++		    } else {
++			r += fraccolleft * qRed( *xP );
++			g += fraccolleft * qGreen( *xP );
++			b += fraccolleft * qBlue( *xP );
++		    }
++		    fraccoltofill -= fraccolleft;
++		}
++	    }
++	    if ( fraccoltofill > 0 ) {
++		--xP;
++		if (as) {
++		    a += fraccolleft * qAlpha( *xP );
++		    r += fraccoltofill * qRed( *xP ) * qAlpha( *xP ) / 255;
++		    g += fraccoltofill * qGreen( *xP ) * qAlpha( *xP ) / 255;
++		    b += fraccoltofill * qBlue( *xP ) * qAlpha( *xP ) / 255;
++		    if ( a ) {
++			r = r * 255 / a * SCALE;
++			g = g * 255 / a * SCALE;
++			b = b * 255 / a * SCALE;
++		    }
++		} else {
++		    r += fraccoltofill * qRed( *xP );
++		    g += fraccoltofill * qGreen( *xP );
++		    b += fraccoltofill * qBlue( *xP );
++		}
++	    }
++	    if ( ! needcol ) {
++		r /= SCALE;
++		if ( r > maxval ) r = maxval;
++		g /= SCALE;
++		if ( g > maxval ) g = maxval;
++		b /= SCALE;
++		if ( b > maxval ) b = maxval;
++		if (as) {
++		    a /= SCALE;
++		    if ( a > maxval ) a = maxval;
++		    *nxP = qRgba( (int)r, (int)g, (int)b, (int)a );
++		} else {
++		    *nxP = qRgb( (int)r, (int)g, (int)b );
++		}
++	    }
++	}
++    }
++
++    if ( d->newrows != d->rows && tempxelrow )// Robust, tempxelrow might be 0 1 day
++	delete [] tempxelrow;
++    if ( as )				// Avoid purify complaint
++	delete [] as;
++    if ( rs )				// Robust, rs might be 0 one day
++	delete [] rs;
++    if ( gs )				// Robust, gs might be 0 one day
++	delete [] gs;
++    if ( bs )				// Robust, bs might be 0 one day
++	delete [] bs;
++
++    return dst;
++}
++
++class jpegSmoothScaler : public QImageSmoothScaler
++{
++public:
++    jpegSmoothScaler(struct jpeg_decompress_struct *info, const char *params):
++	QImageSmoothScaler(info->output_width, info->output_height, params)
++    {
++	cinfo = info;
++	cols24Bit = scaledWidth() * 3;
++
++	cacheHeight = 1;
++	imageCache = QImage( info->output_width, cacheHeight, QImage::Format_RGB32 );
++    }
++
++private:
++    int	    cols24Bit;
++    QImage  imageCache;
++    int	    cacheHeight;
++    struct jpeg_decompress_struct *cinfo;
++
++    QRgb *scanLine(const int line = 0, const QImage *src = 0)
++    {
++	QRgb    *out;
++	uchar	*in;
++
++	Q_UNUSED(line);
++	Q_UNUSED(src);
++
++        uchar* data = imageCache.bits();
++	jpeg_read_scanlines(cinfo, &data, 1);
++	out = (QRgb*)imageCache.scanLine(0);
++
++	//
++	// The smooth scale algorithm only works on 32-bit images;
++	// convert from (8|24) bits to 32.
++	//
++	if (cinfo->output_components == 1) {
++	    in = (uchar*)out + scaledWidth();
++	    for (uint i = scaledWidth(); i--; ) {
++		in--;
++		out[i] = qRgb(*in, *in, *in);
++	    }
++	} else {
++	    in = (uchar*)out + cols24Bit;
++	    for (uint i = scaledWidth(); i--; ) {
++		in -= 3;
++		out[i] = qRgb(in[0], in[1], in[2]);
++	    }
++	}
++
++	return out;
++    }
++
++};
++#endif
++
++struct my_error_mgr : public jpeg_error_mgr {
++    jmp_buf setjmp_buffer;
++};
++
++#if defined(Q_C_CALLBACKS)
++extern "C" {
++#endif
++
++static void my_error_exit (j_common_ptr cinfo)
++{
++    my_error_mgr* myerr = (my_error_mgr*) cinfo->err;
++    char buffer[JMSG_LENGTH_MAX];
++    (*cinfo->err->format_message)(cinfo, buffer);
++    qWarning("%s", buffer);
++    longjmp(myerr->setjmp_buffer, 1);
++}
++
++#if defined(Q_C_CALLBACKS)
++}
++#endif
++
++
++static const int max_buf = 4096;
++
++struct my_jpeg_source_mgr : public jpeg_source_mgr {
++    // Nothing dynamic - cannot rely on destruction over longjump
++    QIODevice *device;
++    JOCTET buffer[max_buf];
++
++public:
++    my_jpeg_source_mgr(QIODevice *device);
++};
++
++#if defined(Q_C_CALLBACKS)
++extern "C" {
++#endif
++
++static void qt_init_source(j_decompress_ptr)
++{
++}
++
++static boolean qt_fill_input_buffer(j_decompress_ptr cinfo)
++{
++    int num_read;
++    my_jpeg_source_mgr* src = (my_jpeg_source_mgr*)cinfo->src;
++    src->next_input_byte = src->buffer;
++    num_read = src->device->read((char*)src->buffer, max_buf);
++    if (num_read <= 0) {
++        // Insert a fake EOI marker - as per jpeglib recommendation
++        src->buffer[0] = (JOCTET) 0xFF;
++        src->buffer[1] = (JOCTET) JPEG_EOI;
++        src->bytes_in_buffer = 2;
++    } else {
++        src->bytes_in_buffer = num_read;
++    }
++#if defined(Q_OS_UNIXWARE)
++    return B_TRUE;
++#else
++    return true;
++#endif
++}
++
++static void qt_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
++{
++    my_jpeg_source_mgr* src = (my_jpeg_source_mgr*)cinfo->src;
++
++    // `dumb' implementation from jpeglib
++
++    /* Just a dumb implementation for now.  Could use fseek() except
++     * it doesn't work on pipes.  Not clear that being smart is worth
++     * any trouble anyway --- large skips are infrequent.
++     */
++    if (num_bytes > 0) {
++        while (num_bytes > (long) src->bytes_in_buffer) {
++            num_bytes -= (long) src->bytes_in_buffer;
++            (void) qt_fill_input_buffer(cinfo);
++            /* note we assume that qt_fill_input_buffer will never return false,
++            * so suspension need not be handled.
++            */
++        }
++        src->next_input_byte += (size_t) num_bytes;
++        src->bytes_in_buffer -= (size_t) num_bytes;
++    }
++}
++
++static void qt_term_source(j_decompress_ptr cinfo)
++{
++    my_jpeg_source_mgr* src = (my_jpeg_source_mgr*)cinfo->src;
++    if (!src->device->isSequential())
++        src->device->seek(src->device->pos() - src->bytes_in_buffer);
++}
++
++#if defined(Q_C_CALLBACKS)
++}
++#endif
++
++inline my_jpeg_source_mgr::my_jpeg_source_mgr(QIODevice *device)
++{
++    jpeg_source_mgr::init_source = qt_init_source;
++    jpeg_source_mgr::fill_input_buffer = qt_fill_input_buffer;
++    jpeg_source_mgr::skip_input_data = qt_skip_input_data;
++    jpeg_source_mgr::resync_to_restart = jpeg_resync_to_restart;
++    jpeg_source_mgr::term_source = qt_term_source;
++    this->device = device;
++    bytes_in_buffer = 0;
++    next_input_byte = buffer;
++}
++
++
++static void scaleSize(int &reqW, int &reqH, int imgW, int imgH, Qt::AspectRatioMode mode)
++{
++    if (mode == Qt::IgnoreAspectRatio)
++        return;
++    int t1 = imgW * reqH;
++    int t2 = reqW * imgH;
++    if ((mode == Qt::KeepAspectRatio && (t1 > t2)) || (mode == Qt::KeepAspectRatioByExpanding && (t1 < t2)))
++        reqH = t2 / imgW;
++    else
++        reqW = t1 / imgH;
++}
++
++bool lib_read_jpeg_size(QIODevice *device, int &w, int &h)
++{
++    bool rt = false;
++    struct jpeg_decompress_struct cinfo;
++
++    struct my_jpeg_source_mgr *iod_src = new my_jpeg_source_mgr(device);
++    struct my_error_mgr jerr;
++
++    jpeg_create_decompress(&cinfo);
++
++    cinfo.src = iod_src;
++
++    cinfo.err = jpeg_std_error(&jerr);
++    jerr.error_exit = my_error_exit;
++
++    if (!setjmp(jerr.setjmp_buffer)) {
++#if defined(Q_OS_UNIXWARE)
++        (void) jpeg_read_header(&cinfo, B_TRUE);
++#else
++        (void) jpeg_read_header(&cinfo, true);
++#endif
++        (void) jpeg_calc_output_dimensions(&cinfo);
++
++        w = cinfo.output_width;
++        h = cinfo.output_height;
++        rt = true;
++    }
++    jpeg_destroy_decompress(&cinfo);
++    delete iod_src;
++    return rt;
++}
++
++#define HIGH_QUALITY_THRESHOLD 50
++
++bool lib_read_jpeg_format(QIODevice *device, QImage::Format &format)
++{
++    bool result = false;
++    struct jpeg_decompress_struct cinfo;
++
++    struct my_jpeg_source_mgr *iod_src = new my_jpeg_source_mgr(device);
++    struct my_error_mgr jerr;
++
++    jpeg_create_decompress(&cinfo);
++
++    cinfo.src = iod_src;
++
++    cinfo.err = jpeg_std_error(&jerr);
++    jerr.error_exit = my_error_exit;
++
++    if (!setjmp(jerr.setjmp_buffer)) {
++#if defined(Q_OS_UNIXWARE)
++        (void) jpeg_read_header(&cinfo, B_TRUE);
++#else
++        (void) jpeg_read_header(&cinfo, true);
++#endif
++        // This does not allocate memory for the whole image
++        // or such, so we are safe.
++        (void) jpeg_start_decompress(&cinfo);
++        result = true;
++        switch (cinfo.output_components) {
++        case 1:
++            format = QImage::Format_Indexed8;
++            break;
++        case 3:
++        case 4:
++            format = QImage::Format_RGB32;
++            break;
++        default:
++            result = false;
++            break;
++        }
++        cinfo.output_scanline = cinfo.output_height;
++        (void) jpeg_finish_decompress(&cinfo);
++    }
++    jpeg_destroy_decompress(&cinfo);
++    delete iod_src;
++    return result;
++}
++
++static bool ensureValidImage(QImage *dest, struct jpeg_decompress_struct *info,
++                             bool dummy = false)
++{
++    QImage::Format format;
++    switch (info->output_components) {
++    case 1:
++        format = QImage::Format_Indexed8;
++        break;
++    case 3:
++    case 4:
++        format = QImage::Format_RGB32;
++        break;
++    default:
++        return false; // unsupported format
++    }
++
++    const QSize size(info->output_width, info->output_height);
++    if (dest->size() != size || dest->format() != format) {
++        static uchar dummyImage[1];
++        if (dummy) // Create QImage but don't read the pixels
++            *dest = QImage(dummyImage, size.width(), size.height(), format);
++        else
++            *dest = QImage(size, format);
++
++        if (format == QImage::Format_Indexed8) {
++            dest->setNumColors(256);
++            for (int i = 0; i < 256; i++)
++                dest->setColor(i, qRgb(i,i,i));
++        }
++    }
++
++    return !dest->isNull();
++}
++
++bool lib_read_jpeg_image(QIODevice *device, QImage *outImage,
++                            const QByteArray &parameters, QSize scaledSize,
++                            int inQuality )
++{
++#ifdef QT_NO_IMAGE_SMOOTHSCALE
++    Q_UNUSED( scaledSize );
++#endif
++
++    struct jpeg_decompress_struct cinfo;
++
++    struct my_jpeg_source_mgr *iod_src = new my_jpeg_source_mgr(device);
++    struct my_error_mgr jerr;
++
++    jpeg_create_decompress(&cinfo);
++
++    cinfo.src = iod_src;
++
++    cinfo.err = jpeg_std_error(&jerr);
++    jerr.error_exit = my_error_exit;
++
++    if (!setjmp(jerr.setjmp_buffer)) {
++#if defined(Q_OS_UNIXWARE)
++        (void) jpeg_read_header(&cinfo, B_TRUE);
++#else
++        (void) jpeg_read_header(&cinfo, true);
++#endif
++
++        // -1 means default quality.
++        int quality = inQuality;
++        if (quality < 0)
++            quality = 75;
++
++        QString params = QString::fromLatin1(parameters);
++        params.simplified();
++        int sWidth = 0, sHeight = 0;
++        char sModeStr[1024] = "";
++        Qt::AspectRatioMode sMode;
++
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++        // If high quality not required, shrink image during decompression
++        if (scaledSize.isValid() && quality < HIGH_QUALITY_THRESHOLD && !params.contains(QLatin1String("GetHeaderInformation")) ) {
++            cinfo.scale_denom = qMin(cinfo.image_width / scaledSize.width(),
++                                     cinfo.image_width / scaledSize.height());
++            if (cinfo.scale_denom < 2) {
++                cinfo.scale_denom = 1;
++            } else if (cinfo.scale_denom < 4) {
++                cinfo.scale_denom = 2;
++            } else if (cinfo.scale_denom < 8) {
++                cinfo.scale_denom = 4;
++            } else {
++                cinfo.scale_denom = 8;
++            }
++            cinfo.scale_num = 1;
++        }
++#endif
++
++
++        // If high quality not required, use fast decompression
++        if( quality < HIGH_QUALITY_THRESHOLD ) {
++            cinfo.dct_method = JDCT_IFAST;
++            cinfo.do_fancy_upsampling = FALSE;
++        }
++#ifdef JPEG_DBG 
++        qCritical("start jpeg_start_decompress\n");	
++#endif        
++        (void) jpeg_start_decompress(&cinfo);
++
++        if (params.contains(QLatin1String("GetHeaderInformation"))) {
++            if (!ensureValidImage(outImage, &cinfo, true))
++                longjmp(jerr.setjmp_buffer, 1);
++        } else if (params.contains(QLatin1String("Scale"))) {
++#if defined(_MSC_VER) && _MSC_VER >= 1400 && !defined(Q_OS_WINCE)
++            sscanf_s(params.toLatin1().data(), "Scale(%i, %i, %1023s)",
++                     &sWidth, &sHeight, sModeStr, sizeof(sModeStr));
++#else
++            sscanf(params.toLatin1().data(), "Scale(%i, %i, %1023s)",
++                   &sWidth, &sHeight, sModeStr);
++#endif
++
++            QString sModeQStr(QString::fromLatin1(sModeStr));
++            if (sModeQStr == QLatin1String("IgnoreAspectRatio")) {
++                sMode = Qt::IgnoreAspectRatio;
++            } else if (sModeQStr == QLatin1String("KeepAspectRatio")) {
++                sMode = Qt::KeepAspectRatio;
++            } else if (sModeQStr == QLatin1String("KeepAspectRatioByExpanding")) {
++                sMode = Qt::KeepAspectRatioByExpanding;
++            } else {
++                qDebug("read_jpeg_image: invalid aspect ratio mode \"%s\", see QImage::AspectRatioMode documentation", sModeStr);
++                sMode = Qt::KeepAspectRatio;
++            }
++#ifdef JPEG_DBG             
++            qCritical("external scale:scale size is%d:%d",sWidth,sHeight);	
++#endif            	
++//            qDebug("Parameters ask to scale the image to %i x %i AspectRatioMode: %s", sWidth, sHeight, sModeStr);
++            scaleSize(sWidth, sHeight, cinfo.output_width, cinfo.output_height, sMode);
++//            qDebug("Scaling the jpeg to %i x %i", sWidth, sHeight, sModeStr);
++
++            if (cinfo.output_components == 3 || cinfo.output_components == 4) {
++                if (outImage->size() != QSize(sWidth, sHeight) || outImage->format() != QImage::Format_RGB32)
++                    *outImage = QImage(sWidth, sHeight, QImage::Format_RGB32);
++            } else if (cinfo.output_components == 1) {
++                if (outImage->size() != QSize(sWidth, sHeight) || outImage->format() != QImage::Format_Indexed8)
++                    *outImage = QImage(sWidth, sHeight, QImage::Format_Indexed8);
++                outImage->setNumColors(256);
++                for (int i = 0; i < 256; ++i)
++                    outImage->setColor(i, qRgb(i,i,i));
++            } else {
++                // Unsupported format
++            }
++            if (outImage->isNull())
++                longjmp(jerr.setjmp_buffer, 1);
++
++            if (!outImage->isNull()) {
++                QImage tmpImage(cinfo.output_width, 1, QImage::Format_RGB32);
++                uchar* inData = tmpImage.bits();
++                uchar* outData = outImage->bits();
++                int out_bpl = outImage->bytesPerLine();
++                while (cinfo.output_scanline < cinfo.output_height) {
++                    int outputLine = sHeight * cinfo.output_scanline / cinfo.output_height;
++                    (void) jpeg_read_scanlines(&cinfo, &inData, 1);
++                    if (cinfo.output_components == 3) {
++                        uchar *in = inData;
++                        QRgb *out = (QRgb*)outData + outputLine * out_bpl;
++                        for (uint i=0; i<cinfo.output_width; i++) {
++// ### Only scaling down an image works, I don't think scaling up will work at the moment
++// ### An idea I have to make this a smooth scale is to progressively add the pixel values up
++// When scaling down, multiple values are being over drawn in to the output buffer.
++// Instead, a weighting based on the distance the line or pixel is from the output pixel determines
++// the weight of it when added to the output buffer. At present it is a non-smooth scale which is
++// inefficently implemented, it still uncompresses all the jpeg, an optimization for progressive
++// jpegs could be made if scaling by say 50% or some other special cases
++                            out[sWidth * i / cinfo.output_width] = qRgb(in[0], in[1], in[2]);
++                            in += 3;
++                        }
++                    } else {
++// ### Need to test the case where the jpeg is grayscale, need some black and white jpegs to test
++// this code. (also only scales down and probably won't scale to a larger size)
++                        uchar *in = inData;
++                        uchar *out = outData + outputLine*out_bpl;
++                        for (uint i=0; i<cinfo.output_width; i++) {
++                            out[sWidth * i / cinfo.output_width] = in[i];
++                        }
++                    }
++                }
++                (void) jpeg_finish_decompress(&cinfo);
++            }
++#ifndef QT_NO_IMAGE_SMOOTHSCALE
++        } else if (scaledSize.isValid()) {
++#ifdef JPEG_DBG             
++            qCritical("internal scale:scale size is %d:%d",scaledSize.width(),scaledSize.height());	
++#endif            
++            jpegSmoothScaler scaler(&cinfo, QString().sprintf("Scale( %d, %d, ScaleFree )",
++                                                              scaledSize.width(),
++                                                              scaledSize.height()).toLatin1().data());
++            *outImage = scaler.scale();
++#ifdef JPEG_DBG             
++            qCritical("internal scale:outimage bytesperline is %d\n",outImage->bytesPerLine());
++#endif            
++#endif
++        } else {
++            if (!ensureValidImage(outImage, &cinfo))
++                longjmp(jerr.setjmp_buffer, 1);
++
++            uchar* data = outImage->bits();
++            int bpl = outImage->bytesPerLine();
++            while (cinfo.output_scanline < cinfo.output_height) {
++                uchar *d = data + cinfo.output_scanline * bpl;
++                (void) jpeg_read_scanlines(&cinfo,
++                                           &d,
++                                           1);
++            }
++            (void) jpeg_finish_decompress(&cinfo);
++
++            if (cinfo.output_components == 3) {
++                // Expand 24->32 bpp.
++                for (uint j=0; j<cinfo.output_height; j++) {
++                    uchar *in = outImage->scanLine(j) + cinfo.output_width * 3;
++                    QRgb *out = (QRgb*)outImage->scanLine(j);
++
++                    for (uint i=cinfo.output_width; i--;) {
++                        in-=3;
++                        out[i] = qRgb(in[0], in[1], in[2]);
++                    }
++                }
++            } else if (cinfo.out_color_space == JCS_CMYK) {
++                for (uint j = 0; j < cinfo.output_height; ++j) {
++                    uchar *in = outImage->scanLine(j) + cinfo.output_width * 4;
++                    QRgb *out = (QRgb*)outImage->scanLine(j);
++
++                    for (uint i = cinfo.output_width; i--; ) {
++                        in-=4;
++                        int k = in[3];
++                        out[i] = qRgb(k * in[0] / 255, k * in[1] / 255, k * in[2] / 255);
++                    }
++                }
++            }
++            if (cinfo.density_unit == 1) {
++                outImage->setDotsPerMeterX(int(100. * cinfo.X_density / 2.54));
++                outImage->setDotsPerMeterY(int(100. * cinfo.Y_density / 2.54));
++            } else if (cinfo.density_unit == 2) {
++                outImage->setDotsPerMeterX(int(100. * cinfo.X_density));
++                outImage->setDotsPerMeterY(int(100. * cinfo.Y_density));
++            }
++        }
++    }
++
++    jpeg_destroy_decompress(&cinfo);
++    delete iod_src;
++    return !outImage->isNull();
++}
++
++
++struct my_jpeg_destination_mgr : public jpeg_destination_mgr {
++    // Nothing dynamic - cannot rely on destruction over longjump
++    QIODevice *device;
++    JOCTET buffer[max_buf];
++
++public:
++    my_jpeg_destination_mgr(QIODevice *);
++};
++
++
++#if defined(Q_C_CALLBACKS)
++extern "C" {
++#endif
++
++static void qt_init_destination(j_compress_ptr)
++{
++}
++
++static boolean qt_empty_output_buffer(j_compress_ptr cinfo)
++{
++    my_jpeg_destination_mgr* dest = (my_jpeg_destination_mgr*)cinfo->dest;
++
++    int written = dest->device->write((char*)dest->buffer, max_buf);
++    if (written == -1)
++        (*cinfo->err->error_exit)((j_common_ptr)cinfo);
++
++    dest->next_output_byte = dest->buffer;
++    dest->free_in_buffer = max_buf;
++
++#if defined(Q_OS_UNIXWARE)
++    return B_TRUE;
++#else
++    return true;
++#endif
++}
++
++static void qt_term_destination(j_compress_ptr cinfo)
++{
++    my_jpeg_destination_mgr* dest = (my_jpeg_destination_mgr*)cinfo->dest;
++    qint64 n = max_buf - dest->free_in_buffer;
++
++    qint64 written = dest->device->write((char*)dest->buffer, n);
++    if (written == -1)
++        (*cinfo->err->error_exit)((j_common_ptr)cinfo);
++}
++
++#if defined(Q_C_CALLBACKS)
++}
++#endif
++
++inline my_jpeg_destination_mgr::my_jpeg_destination_mgr(QIODevice *device)
++{
++    jpeg_destination_mgr::init_destination = qt_init_destination;
++    jpeg_destination_mgr::empty_output_buffer = qt_empty_output_buffer;
++    jpeg_destination_mgr::term_destination = qt_term_destination;
++    this->device = device;
++    next_output_byte = buffer;
++    free_in_buffer = max_buf;
++}
++
++
++bool lib_write_jpeg_image(const QImage &sourceImage, QIODevice *device, int sourceQuality)
++{
++    bool success = false;
++    const QImage image = sourceImage;
++    const QVector<QRgb> cmap = image.colorTable();
++
++    struct jpeg_compress_struct cinfo;
++    JSAMPROW row_pointer[1];
++    row_pointer[0] = 0;
++
++    struct my_jpeg_destination_mgr *iod_dest = new my_jpeg_destination_mgr(device);
++    struct my_error_mgr jerr;
++
++    cinfo.err = jpeg_std_error(&jerr);
++    jerr.error_exit = my_error_exit;
++
++    if (!setjmp(jerr.setjmp_buffer)) {
++        // WARNING:
++        // this if loop is inside a setjmp/longjmp branch
++        // do not create C++ temporaries here because the destructor may never be called
++        // if you allocate memory, make sure that you can free it (row_pointer[0])
++        jpeg_create_compress(&cinfo);
++
++        cinfo.dest = iod_dest;
++
++        cinfo.image_width = image.width();
++        cinfo.image_height = image.height();
++
++        bool gray=false;
++        switch (image.format()) {
++        case QImage::Format_Mono:
++        case QImage::Format_MonoLSB:
++        case QImage::Format_Indexed8:
++            gray = true;
++            for (int i = image.numColors(); gray && i--;) {
++                gray = gray & (qRed(cmap[i]) == qGreen(cmap[i]) &&
++                               qRed(cmap[i]) == qBlue(cmap[i]));
++            }
++            cinfo.input_components = gray ? 1 : 3;
++            cinfo.in_color_space = gray ? JCS_GRAYSCALE : JCS_RGB;
++            break;
++        default:
++            cinfo.input_components = 3;
++            cinfo.in_color_space = JCS_RGB;
++        }
++
++        jpeg_set_defaults(&cinfo);
++
++        qreal diffInch = qAbs(image.dotsPerMeterX()*2.54/100. - qRound(image.dotsPerMeterX()*2.54/100.))
++                         + qAbs(image.dotsPerMeterY()*2.54/100. - qRound(image.dotsPerMeterY()*2.54/100.));
++        qreal diffCm = (qAbs(image.dotsPerMeterX()/100. - qRound(image.dotsPerMeterX()/100.))
++                        + qAbs(image.dotsPerMeterY()/100. - qRound(image.dotsPerMeterY()/100.)))*2.54;
++        if (diffInch < diffCm) {
++            cinfo.density_unit = 1; // dots/inch
++            cinfo.X_density = qRound(image.dotsPerMeterX()*2.54/100.);
++            cinfo.Y_density = qRound(image.dotsPerMeterY()*2.54/100.);
++        } else {
++            cinfo.density_unit = 2; // dots/cm
++            cinfo.X_density = (image.dotsPerMeterX()+50) / 100;
++            cinfo.Y_density = (image.dotsPerMeterY()+50) / 100;
++        }
++
++
++        int quality = sourceQuality >= 0 ? qMin(sourceQuality,100) : 75;
++#if defined(Q_OS_UNIXWARE)
++        jpeg_set_quality(&cinfo, quality, B_TRUE /* limit to baseline-JPEG values */);
++        jpeg_start_compress(&cinfo, B_TRUE);
++#else
++        jpeg_set_quality(&cinfo, quality, true /* limit to baseline-JPEG values */);
++        jpeg_start_compress(&cinfo, true);
++#endif
++
++        row_pointer[0] = new uchar[cinfo.image_width*cinfo.input_components];
++        int w = cinfo.image_width;
++        while (cinfo.next_scanline < cinfo.image_height) {
++            uchar *row = row_pointer[0];
++            switch (image.format()) {
++            case QImage::Format_Mono:
++            case QImage::Format_MonoLSB:
++                if (gray) {
++                    const uchar* data = image.scanLine(cinfo.next_scanline);
++                    if (image.format() == QImage::Format_MonoLSB) {
++                        for (int i=0; i<w; i++) {
++                            bool bit = !!(*(data + (i >> 3)) & (1 << (i & 7)));
++                            row[i] = qRed(cmap[bit]);
++                        }
++                    } else {
++                        for (int i=0; i<w; i++) {
++                            bool bit = !!(*(data + (i >> 3)) & (1 << (7 -(i & 7))));
++                            row[i] = qRed(cmap[bit]);
++                        }
++                    }
++                } else {
++                    const uchar* data = image.scanLine(cinfo.next_scanline);
++                    if (image.format() == QImage::Format_MonoLSB) {
++                        for (int i=0; i<w; i++) {
++                            bool bit = !!(*(data + (i >> 3)) & (1 << (i & 7)));
++                            *row++ = qRed(cmap[bit]);
++                            *row++ = qGreen(cmap[bit]);
++                            *row++ = qBlue(cmap[bit]);
++                        }
++                    } else {
++                        for (int i=0; i<w; i++) {
++                            bool bit = !!(*(data + (i >> 3)) & (1 << (7 -(i & 7))));
++                            *row++ = qRed(cmap[bit]);
++                            *row++ = qGreen(cmap[bit]);
++                            *row++ = qBlue(cmap[bit]);
++                        }
++                    }
++                }
++                break;
++            case QImage::Format_Indexed8:
++                if (gray) {
++                    const uchar* pix = image.scanLine(cinfo.next_scanline);
++                    for (int i=0; i<w; i++) {
++                        *row = qRed(cmap[*pix]);
++                        ++row; ++pix;
++                    }
++                } else {
++                    const uchar* pix = image.scanLine(cinfo.next_scanline);
++                    for (int i=0; i<w; i++) {
++                        *row++ = qRed(cmap[*pix]);
++                        *row++ = qGreen(cmap[*pix]);
++                        *row++ = qBlue(cmap[*pix]);
++                        ++pix;
++                    }
++                }
++                break;
++            case QImage::Format_RGB888:
++                memcpy(row, image.scanLine(cinfo.next_scanline), w * 3);
++                break;
++            case QImage::Format_RGB32:
++            case QImage::Format_ARGB32:
++            case QImage::Format_ARGB32_Premultiplied: {
++                QRgb* rgb = (QRgb*)image.scanLine(cinfo.next_scanline);
++                for (int i=0; i<w; i++) {
++                    *row++ = qRed(*rgb);
++                    *row++ = qGreen(*rgb);
++                    *row++ = qBlue(*rgb);
++                    ++rgb;
++                }
++                break;
++            }
++            default:
++                qWarning("QJpegHandler: unable to write image of format %i",
++                         image.format());
++                break;
++            }
++            jpeg_write_scanlines(&cinfo, row_pointer, 1);
++        }
++
++        jpeg_finish_compress(&cinfo);
++        jpeg_destroy_compress(&cinfo);
++        success = true;
++    } else {
++        jpeg_destroy_compress(&cinfo);
++        success = false;
++    }
++
++    delete iod_dest;
++    delete [] row_pointer[0];
++    return success;
++}
++
+diff -uNr qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/swjpegdec.h qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/swjpegdec.h
+--- qt-everywhere-opensource-src-4.6.2.ori/src/plugins/imageformats/jpeg_aml/swjpegdec.h	1970-01-01 07:00:00.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.2.chg/src/plugins/imageformats/jpeg_aml/swjpegdec.h	2010-06-21 20:09:12.164684000 +0800
+@@ -0,0 +1,18 @@
++/*****************************************************************************
++*
++* for jpeglib decoder.
++*
++****************************************************************************/
++
++#ifndef JPEGLIB_DECODER_H
++#define JPEGLIB_DECODER_H
++
++#include <QtCore/QSize>
++
++extern bool lib_write_jpeg_image(const QImage &sourceImage, QIODevice *device, int sourceQuality);
++extern bool lib_read_jpeg_image(QIODevice *device, QImage *outImage,
++                            const QByteArray &parameters, QSize scaledSize,
++                            int inQuality );
++extern bool lib_read_jpeg_format(QIODevice *device, QImage::Format &format);
++extern bool lib_read_jpeg_size(QIODevice *device, int &w, int &h);
++#endif // JPEGLIB_DECODER_H
